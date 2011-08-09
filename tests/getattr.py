@@ -36,4 +36,3 @@ if __name__ == '__main__':
     B.__getattribute__ = class_getattribute
     print "2. b3.foo = " + b3.foo
 
-    

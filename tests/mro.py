@@ -31,4 +31,3 @@ if __name__ == '__main__':
     print "b3.method1() = " + b3.method1()
 
 
-    
