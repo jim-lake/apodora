@@ -3,6 +3,18 @@
 import argparse
 import ast
 
+class CompileVisitor(ast.NodeVisitor):
+
+    def visit_Module(self,node):
+        print "Module: %s" % node
+        for name,value in ast.iter_fields(node):
+            print "  Field: %s,%s" % (name,value)
+        super(CompileVisitor,self).generic_visit(node)
+
+    def generic_visit(self,node):
+        print "node: %s" % node
+        super(CompileVisitor,self).generic_visit(node)
+
 
 if __name__ == '__main__':
     
@@ -13,9 +25,13 @@ if __name__ == '__main__':
     print "Opening file: %s" % args.file
     file = open(args.file)
     source = file.read()
-    file_ast = ast.parse(source,args.file)
+    root_node = ast.parse(source,args.file)
     
-    print "Got ast: %r" % file_ast
-
-    print "Dump: %s" % ast.dump(file_ast)
+    print "Got root_node: %r" % root_node
+    print "Dump: %s" % ast.dump(root_node)
+    
+    cv = CompileVisitor()
+    cv.visit(root_node)
+    
+    print "Done"
 
