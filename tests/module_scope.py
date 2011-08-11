@@ -7,26 +7,21 @@ else:
     z = 3
 
 def func():
-    #print "  vars = ", vars()
-    #print "  globals = ", globals()
+    global y
     
-#    exec('y = 22')
-
-    print "  vars = ", vars()
-    print "  globals = ", globals()
-    
-    print "  x = ", x
-    print "  y = ", y
-
     exec('y = 22')
+
+    print "  x = ", x
+    print "  y = ", y
+
+    y = 33
+    #exec('x = 11')
     
     print "  vars = ", vars()
     print "  globals = ", globals()
 
     print "  x = ", x
     print "  y = ", y
-
-    
 
 print "x = ", x
 print "y = ", y

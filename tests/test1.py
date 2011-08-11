@@ -2,9 +2,11 @@
 # Simplest Test
 
 x = 1
-y = 2
-z = x + y
+x = 2
+y = 3
+z = x
+z = 77
+zz = 2.2
 
-print "foo"
-print z
+x + y
 
