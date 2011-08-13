@@ -12,12 +12,17 @@
 		2D5B7AFF13F0C83F00F57CF8 /* test1.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = test1.py; path = ../tests/test1.py; sourceTree = "<group>"; };
 		2D5B7B0013F0C97100F57CF8 /* mro.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = mro.py; path = ../tests/mro.py; sourceTree = "<group>"; };
 		2D5B7B0513F0DBC700F57CF8 /* getattr.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = getattr.py; path = ../tests/getattr.py; sourceTree = "<group>"; };
+		2DF5D43E13F5B2BD000A97E5 /* assembler.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = assembler.py; path = ../src/assembler.py; sourceTree = "<group>"; };
+		2DF5D45613F6D9D1000A97E5 /* setup.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = setup.py; path = ../setup.py; sourceTree = "<group>"; };
+		2DF5D45713F6DA61000A97E5 /* asmhelper.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = asmhelper.c; path = ../src/asmhelper/asmhelper.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		2D5B7AEC13F0B89100F57CF8 = {
 			isa = PBXGroup;
 			children = (
+				2DF5D45513F6D9AF000A97E5 /* Setup */,
+				2DF5D45313F6CFC3000A97E5 /* Extension */,
 				2D5B7AF513F0B89700F57CF8 /* Compiler */,
 				2D5B7AF613F0B8A300F57CF8 /* Tests */,
 			);
@@ -27,6 +32,7 @@
 			isa = PBXGroup;
 			children = (
 				2D5B7AFE13F0C83500F57CF8 /* entry.py */,
+				2DF5D43E13F5B2BD000A97E5 /* assembler.py */,
 			);
 			name = Compiler;
 			sourceTree = "<group>";
@@ -40,6 +46,22 @@
 				2D4B848613F450BA008184AE /* module_scope.py */,
 			);
 			name = Tests;
+			sourceTree = "<group>";
+		};
+		2DF5D45313F6CFC3000A97E5 /* Extension */ = {
+			isa = PBXGroup;
+			children = (
+				2DF5D45713F6DA61000A97E5 /* asmhelper.c */,
+			);
+			name = Extension;
+			sourceTree = "<group>";
+		};
+		2DF5D45513F6D9AF000A97E5 /* Setup */ = {
+			isa = PBXGroup;
+			children = (
+				2DF5D45613F6D9D1000A97E5 /* setup.py */,
+			);
+			name = Setup;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
