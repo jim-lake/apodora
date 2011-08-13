@@ -3,6 +3,17 @@
 import argparse
 import ast
 import assembler
+import asmhelper
+
+def _hexdump(src, length=8):
+    result = []
+    digits = 4 if isinstance(src, unicode) else 2
+    for i in xrange(0, len(src), length):
+        s = src[i:i+length]
+        hexa = b' '.join(["%0*x" % (digits, ord(x))  for x in s])
+        text = b''.join([x if 0x20 <= ord(x) < 0x7F else b'.'  for x in s])
+        result.append( b"%04x   %-*s   %s" % (i, length*(digits + 1), hexa, text) )
+    return b'\n'.join(result)
 
 class ModuleVistor(ast.NodeVisitor):
 
@@ -47,8 +58,15 @@ class ModuleVistor(ast.NodeVisitor):
         self._assembler.release_temp(right)
         return ret
     
+    def visit_Return(self,node):
+        value = self.visit(node.value)
+        self._assembler.return_(value)
+    
     def generic_visit(self,node):
         raise NotImplementedError("Don't support node type: %r" % node)
+
+    def get_assembler(self):
+        return self._assembler;
 
 if __name__ == '__main__':
     
@@ -66,6 +84,19 @@ if __name__ == '__main__':
     
     cv = ModuleVistor()
     cv.visit(root_node)
+    
+    assembler = cv.get_assembler()
+    assembler.return_(-1)
+    ops = assembler.get_op_string()
+    
+    print "ops: %r" % ops
+    
+    print "hexdump(ops): ----"
+    print _hexdump(ops)
+    print "----"
+    
+    ret = asmhelper.run_memory(ops)
+    print "ret: ", ret
     
     print "Done"
 

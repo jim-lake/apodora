@@ -15,7 +15,9 @@ static PyObject *run_memory(PyObject *self,PyObject *args);
 static PyObject *get_symbol_address(PyObject *self,PyObject *args);
 PyMODINIT_FUNC initasmhelper(void);
 
-int mytest_function(void);
+long mytest_function(void);
+
+typedef long (*user_func_t)(void);
 
 static PyObject *run_memory(PyObject *self,PyObject *args)
 {
@@ -32,16 +34,18 @@ static PyObject *run_memory(PyObject *self,PyObject *args)
     mprotect(pexec_block,exec_size,PROT_READ|PROT_EXEC|PROT_WRITE);
 
     // Here's where we run something
-
-    mytest_function();
-
-	Py_INCREF(Py_None);
-	return Py_None;
+    user_func_t pfunc = (user_func_t)pexec_block;
+    long i = 0;
+    i = pfunc();
+    //i = mytest_function();
+    printf("Got return in C: %ld\n",i);
+    PyObject *obj = PyInt_FromLong(i);
+	return obj;
 }
 
-int mytest_function(void)
+long mytest_function(void)
 {
-    return -42;
+    return 0;
 }
 
 
@@ -58,7 +62,7 @@ static PyObject *get_symbol_address(PyObject *self,PyObject *args)
         return Py_None;
 	}
 
-	return Py_BuildValue("K",(unsigned long long)symbol_addr);
+	return Py_BuildValue("K",(unsigned long)symbol_addr);
 }
 
 static PyMethodDef asmhelper_methods[] = 

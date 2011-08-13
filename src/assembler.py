@@ -1,5 +1,7 @@
 
 
+import struct
+
 class AsmTemp(object):
     def __init__(self,name=None):
         self._name = name
@@ -7,9 +9,20 @@ class AsmTemp(object):
     def __str__(self):
         return "Temp(name=%s)" % self._name
 
+INT32_MAX = pow(2,31) - 1
+INT32_MIN = -pow(2,31)
+
 class Assembler(object):
 
     _globals = {}
+    
+    _ops = []
+
+    def __init__(self):
+        self.function_prefix()
+
+    def get_op_string(self):
+        return ''.join(self._ops)
 
     def store_global(self,target,source):
         print "Store Global: %s=%s" % (target,source)
@@ -40,5 +53,57 @@ class Assembler(object):
     
     def plus_equals(self,target,increment):
         pass
+    
+    def return_(self,value):
+        print "Return: %s" % value
+        if type(value) is int:
+            self.MOVQ_RAX_IMM(value)
+        else:
+            raise NotImplementedError("Unsupported return value")
+
+        self.function_cleanup()
+        self.RETQ()
+
+    def function_prefix(self):
+        # Save RBP
+        self.PUSHQ_RBP()
+        # Make RBP RSP
+        self.MOVQ_RBP_RSP()
+        
+    
+    def function_cleanup(self):
+        # Restore RBP
+        self.POPQ_RBP()
+
+    # Functions that equate to Intel x64 instructions
+
+    def MOVQ_RAX_IMM(self,imm):
+        if imm == 0:
+            self.XOR_RAX_RAX()
+        elif imm > 0 and imm < INT32_MAX:
+            bytes = struct.pack("=i",imm)
+            self._ops.append('\xb8' + bytes)
+        elif imm < 0 and imm > INT32_MIN:
+            bytes = struct.pack("=i",imm)
+            self._ops.append('\x48\xc7\xc0' + bytes)
+        else:
+            raise NotImplementedError("Unsupported immediate: %d" % imm)
+
+    def XOR_RAX_RAX(self):
+        self._ops.append('\x31\xc0')
+
+    def PUSHQ_RBP(self):
+        self._ops.append('\x55')
+        
+    def MOVQ_RBP_RSP(self):
+        self._ops.append('\x48\x89\xe5')
+        
+    def RETQ(self):
+        self._ops.append('\xc3')
+    
+    def POPQ_RBP(self):
+        self._ops.append('\x5d')
+    
+    
     
     
