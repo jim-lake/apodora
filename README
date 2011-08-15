@@ -2,18 +2,47 @@ Apodora Python run time
 
 -----
 
-Startup:
+INSTALL:
 
-- malloc module address
-
-In Running Code
-
-- malloc module
-- set __internalclass__ 
-- malloc new module
-- copy memory
-- set new __internalclass__
+From root:
+ python setup.py build
+ cp build/lib.platform/asmhelper.(so|pdy|dll) src
 
 
+From src:
+ python entry.py
+ python entry.py ../tests/test0.py
 
+-----
+
+HOW THIS THING WORKS:
+
+Startup (in the compiler):
+
+- malloc module address -> static address
+
+In Running Code (in the assembly):
+
+- Module Startup
+
+ - malloc module
+ - set __internalclass__ 
+ - store &module in static address for module
+
+- Add a global 
+
+ - malloc new module
+ - copy memory from old to new
+ - set new __internalclass__
+ - store &module in static address for module
+
+- Read a global
+
+ - Check cached internal class with current __internalclass__
+ - if same:
+  - load offset
+ - else:
+  - offset = __compiler__.read_global(module,name)
+  - __compiler__.fixup_inline_cache(module,module.__internalclass__,offset)
+ - read from offset
 
