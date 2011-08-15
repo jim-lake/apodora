@@ -15,21 +15,27 @@ def _hexdump(src, length=8):
         result.append( b"%04x   %-*s   %s" % (i, length*(digits + 1), hexa, text) )
     return b'\n'.join(result)
 
-class ModuleVistor(ast.NodeVisitor):
+class CompileVisitor(ast.NodeVisitor):
 
-    def __init__(self):
-        super(ModuleVistor,self).__init__()
+    _module_scope = True
+
+    def __init__(self,module_scope=True):
+        super(CompileVisitor,self).__init__()
+        self._module_scope = module_scope
         self._assembler = assembler.Assembler()
 
     def visit_Module(self,node):
         # Do nothing!
-        super(ModuleVistor,self).generic_visit(node)
+        super(CompileVisitor,self).generic_visit(node)
     
     def visit_Assign(self,node):
         if len(node.targets) == 1:
             target = node.targets[0].id
             value = self.visit(node.value)
-            self._assembler.store_global(target,value)
+            if self._module_scope:
+                self._assembler.store_global(target,value)
+            else:
+                self._assembler.store(target,value)
             self._assembler.release_temp(value)
         else:
             raise NotImplementedError("Don't support assign with target len: %d" % len(node.targets))
@@ -42,7 +48,7 @@ class ModuleVistor(ast.NodeVisitor):
     
     def visit_Expr(self,node):
         # Do nothing!
-        super(ModuleVistor,self).generic_visit(node)
+        super(CompileVisitor,self).generic_visit(node)
     
     def visit_BinOp(self,node):
         left = self.visit(node.left)
@@ -61,6 +67,17 @@ class ModuleVistor(ast.NodeVisitor):
     def visit_Return(self,node):
         value = self.visit(node.value)
         self._assembler.return_(value)
+
+    def visit_FunctionDef(self,node):
+        name = node.name
+        cv = CompileVisitor(module_scope=False)
+        for child in node.body:
+            cv.visit(child)
+        self._assembler.store_global(name,cv)
+    
+    def visit_Global(self,node):
+        for n in node.names:
+            self._assembler.add_global(n)
     
     def generic_visit(self,node):
         raise NotImplementedError("Don't support node type: %r" % node)
@@ -82,7 +99,7 @@ if __name__ == '__main__':
     print "Got root_node: %r" % root_node
     print "Dump: %s" % ast.dump(root_node)
     
-    cv = ModuleVistor()
+    cv = CompileVisitor()
     cv.visit(root_node)
     
     assembler = cv.get_assembler()

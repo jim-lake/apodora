@@ -12,9 +12,25 @@ class AsmTemp(object):
 INT32_MAX = pow(2,31) - 1
 INT32_MIN = -pow(2,31)
 
+TYPE_UNKNOWN = 0
+TYPE_INT = 1
+TYPE_FLOAT = 2
+TYPE_OBJECT = 3
+
+class VariableStoreOp(object):
+    def __init__(self,target,source):
+        self.target = target
+        self.source = source
+
+class VariableInfo(object):
+    type = TYPE_UNKNOWN
+    def __init__(self,type=TYPE_UNKNOWN):
+        self.type = type
+
 class Assembler(object):
 
     _globals = {}
+    _locals = {}
     
     _ops = []
 
@@ -24,8 +40,21 @@ class Assembler(object):
     def get_op_string(self):
         return ''.join(self._ops)
 
+    def add_global(self,name):
+        self._globals[name] = VariableInfo()
+
     def store_global(self,target,source):
+        if target in self._globals:
+            pass
+        else:
+            pass
         print "Store Global: %s=%s" % (target,source)
+
+    def store(self,target,source):
+        if target in self._globals:
+            self.store_global(target,source)
+        else:
+            self._ops.append(VariableStoreOp(target,source))
     
     def store_local(self,target,source):
         pass

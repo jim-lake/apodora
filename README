@@ -1,1 +1,19 @@
 Apodora Python run time
+
+-----
+
+Startup:
+
+- malloc module address
+
+In Running Code
+
+- malloc module
+- set __internalclass__ 
+- malloc new module
+- copy memory
+- set new __internalclass__
+
+
+
+
