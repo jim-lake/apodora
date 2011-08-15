@@ -3,12 +3,15 @@
 import assembler
 
 class AsmTemp(object):
-    def __init__(self,name=None):
+    def __init__(self,semlist,name=None):
         self._name = name
+        self._semlist = semlist
     
     def __str__(self):
         return "Temp(name=%s)" % self._name
 
+    def load_attr(self,name):
+        return self._semlist.load_attr(self,name)
 
 TYPE_UNKNOWN = 0
 TYPE_INT = 1
@@ -56,7 +59,7 @@ class SemanticList(object):
         pass
     
     def load_global(self,name):
-        temp = AsmTemp(name)
+        temp = AsmTemp(self,name)
         print "Load Temp: %s" % temp
         return temp
     
@@ -65,13 +68,18 @@ class SemanticList(object):
     
     def load_smart(self,name):
         pass
+        
+    def load_attr(self,object,name):
+        temp = AsmTemp(self,"%s.%s" % (object,name)) 
+        print "Load Attribute: %s" % temp
+        return temp
     
     def release_temp(self,temp):
         if type(temp) == AsmTemp:
             print "Release Temp: %s" % temp
     
     def plus(self,left,right):
-        temp = AsmTemp()
+        temp = AsmTemp(self)
         print "Add: %s=%s + %s" % (temp,left,right)
         return temp
     

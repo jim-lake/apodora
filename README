@@ -42,7 +42,20 @@ In Running Code (in the assembly):
  - if same:
   - load offset
  - else:
-  - offset = __compiler__.read_global(module,name)
+  - offset = __compiler__.get_offset(module,name)
   - __compiler__.fixup_inline_cache(module,module.__internalclass__,offset)
  - read from offset
+
+-------
+
+Where things go:
+
+- Syntatic things in the SyntaxWalker
+- SyntaxWalker calls SemanticList with Semantic Ops 
+- SemanticList -> Calls ops in the Assembler
+- Assembly and Linking in the Assembler
+
+- Inline intrinsics implemented in the SemanticList as functions, available as static functions on __intrinsic__
+- Functional intrinsics implemented in lib/__compiler__.py, available as static functions on __compiler__
+
 

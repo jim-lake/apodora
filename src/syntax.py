@@ -3,19 +3,27 @@
 import ast
 import semantics
 
+class Intrinsics(object):
+    def load_attr(self,name):
+        return '__intrinsic__.' + name
+
+intrinsics = { '__intrinsic__': Intrinsics() }
+
 class SyntaxVisitor(ast.NodeVisitor):
     
     _globals = set()
     _locals = set()
     _module_scope = True
     _semlist = semantics.SemanticList()
+    _module_name = ""
     
-    def __init__(self,module_scope=True):
+    def __init__(self,module_name,module_scope=True):
         super(SyntaxVisitor,self).__init__()
+        self._module_name = module_name
         self._module_scope = module_scope
     
     def visit_Module(self,node):
-        # Do nothing!
+        print "Module node: %r, node._fields: %r" % (node,node._fields)
         super(SyntaxVisitor,self).generic_visit(node)
     
     def visit_Assign(self,node):
@@ -35,7 +43,9 @@ class SyntaxVisitor(ast.NodeVisitor):
     
     def visit_Name(self,node):
         name = node.id
-        if self._module_scope:
+        if name in intrinsics:
+            temp = intrinsics[name]
+        elif self._module_scope:
             temp = self._semlist.load_global(name)
         elif name in _globals:
             temp = self._semlist.load_global(name)
@@ -71,14 +81,27 @@ class SyntaxVisitor(ast.NodeVisitor):
     
     def visit_FunctionDef(self,node):
         name = node.name
-        cv = SyntaxVisitor(module_scope=False)
+        decorator_list = []
+        for d in node.decorator_list:
+            decorator_list.append(self.visit(d))
+        print "Decorators: %r" % decorator_list
+        cv = SyntaxVisitor(self._module_name,module_scope=False)
         for child in node.body:
             cv.visit(child)
         self._semlist.store_global(name,cv)
     
+    def visit_Pass(self,node):
+        pass
+    
     def visit_Global(self,node):
         for n in node.names:
             self._globals.add(n)
+    
+    def visit_Attribute(self,node):
+        value = self.visit(node.value)
+        attr = node.attr
+        temp = value.load_attr(attr)
+        return temp
     
     def generic_visit(self,node):
         raise NotImplementedError("Don't support node type: %r" % node)

@@ -18,8 +18,8 @@
 		2DF5D45613F6D9D1000A97E5 /* setup.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = setup.py; path = ../setup.py; sourceTree = "<group>"; };
 		2DF5D45713F6DA61000A97E5 /* asmhelper.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = asmhelper.c; path = ../src/asmhelper/asmhelper.c; sourceTree = "<group>"; };
 		2DF5D45813F703AB000A97E5 /* test0.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = test0.py; path = ../tests/test0.py; sourceTree = "<group>"; };
-		2DF5D45E13F75BC4000A97E5 /* __compiler__.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = __compiler__.py; path = ../src/lib/__compiler__.py; sourceTree = "<group>"; };
-		2DF5D45F13F75D28000A97E5 /* __gc__.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = __gc__.py; path = ../src/lib/__gc__.py; sourceTree = "<group>"; };
+		2DF5D45E13F75BC4000A97E5 /* compiler.py */ = {isa = PBXFileReference; name = compiler.py; path = ../src/lib/compiler.py; sourceTree = "<group>"; };
+		2DF5D45F13F75D28000A97E5 /* gc.py */ = {isa = PBXFileReference; name = gc.py; path = ../src/lib/gc.py; sourceTree = "<group>"; };
 		2DF5D46113F77B5F000A97E5 /* README */ = {isa = PBXFileReference; lastKnownFileType = text; name = README; path = ../README; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -40,9 +40,9 @@
 			isa = PBXGroup;
 			children = (
 				2D5B7AFE13F0C83500F57CF8 /* entry.py */,
+				2D4B848B13F98F15008184AE /* syntax.py */,
 				2D4B848D13F98F85008184AE /* semantics.py */,
 				2DF5D43E13F5B2BD000A97E5 /* assembler.py */,
-				2D4B848B13F98F15008184AE /* syntax.py */,
 			);
 			name = Compiler;
 			sourceTree = "<group>";
@@ -78,8 +78,8 @@
 		2DF5D45D13F75BA2000A97E5 /* Lib */ = {
 			isa = PBXGroup;
 			children = (
-				2DF5D45E13F75BC4000A97E5 /* __compiler__.py */,
-				2DF5D45F13F75D28000A97E5 /* __gc__.py */,
+				2DF5D45E13F75BC4000A97E5 /* compiler.py */,
+				2DF5D45F13F75D28000A97E5 /* gc.py */,
 			);
 			name = Lib;
 			sourceTree = "<group>";

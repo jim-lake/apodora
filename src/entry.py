@@ -16,6 +16,23 @@ def _hexdump(src, length=8):
         result.append( b"%04x   %-*s   %s" % (i, length*(digits + 1), hexa, text) )
     return b'\n'.join(result)
 
+def read_file(name,module_name=None):
+    if module_name is None:
+        module_name = name
+    print "Opening file: %s" % name
+    file = open(name)
+    source = file.read()
+    root_node = ast.parse(source,name)
+    
+    print "Got root_node: %r" % root_node
+    print "Dump: %s" % ast.dump(root_node)
+    
+    sv = syntax.SyntaxVisitor(module_name)
+    sv.visit(root_node)
+    sl = sv.get_semantic_list()
+    sl.return_(-1)
+    asm = sl.get_assembler()
+    return asm.get_op_string()
 
 if __name__ == '__main__':
     
@@ -23,21 +40,8 @@ if __name__ == '__main__':
     parser.add_argument('file',help='python file to run')
     args = parser.parse_args()
 
-    print "Opening file: %s" % args.file
-    file = open(args.file)
-    source = file.read()
-    root_node = ast.parse(source,args.file)
-    
-    print "Got root_node: %r" % root_node
-    print "Dump: %s" % ast.dump(root_node)
-    
-    sv = syntax.SyntaxVisitor()
-    sv.visit(root_node)
-    
-    sl = sv.get_semantic_list()
-    sl.return_(-1)
-    asm = sl.get_assembler()
-    ops = asm.get_op_string()
+    compiler_ops = read_file('lib/compiler.py','__compiler__')
+    ops = read_file(args.file,'__main__')
     
     print "ops: %r" % ops
     
