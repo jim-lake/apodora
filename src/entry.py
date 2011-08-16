@@ -43,6 +43,12 @@ if __name__ == '__main__':
     compiler_ops = read_file('lib/compiler.py','__compiler__')
     ops = read_file(args.file,'__main__')
     
+    print "Static Functions: ----"
+    sfmap = syntax.SyntaxVisitor.get_static_functions()
+    for k,v in sfmap.iteritems():
+        print "  %s:%s" % (k,v)
+    print "----"
+    
     print "compiler_ops: %r" % compiler_ops
     print "ops: %r" % ops
     

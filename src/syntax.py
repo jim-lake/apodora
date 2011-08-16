@@ -21,9 +21,15 @@ class SyntaxVisitor(ast.NodeVisitor):
         self._module_scope = module_scope
         self._semlist = semantics.SemanticList()
 
+    @classmethod
+    def get_static_functions(cls):
+        return cls._static_functions
+
     def visit_Module(self,node):
         print "Module node: %r, node._fields: %r" % (node,node._fields)
-        super(SyntaxVisitor,self).generic_visit(node)
+        #sv = SyntaxVisitor(self._module_name,module_scope=True)
+        for node in node.body:
+            self.visit(node)
     
     def visit_Assign(self,node):
         if len(node.targets) == 1:
