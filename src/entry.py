@@ -43,6 +43,7 @@ if __name__ == '__main__':
     compiler_ops = read_file('lib/compiler.py','__compiler__')
     ops = read_file(args.file,'__main__')
     
+    print "compiler_ops: %r" % compiler_ops
     print "ops: %r" % ops
     
     print "hexdump(ops): ----"

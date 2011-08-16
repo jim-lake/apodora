@@ -9,19 +9,18 @@ class Intrinsics(object):
 
 intrinsics = { '__intrinsic__': Intrinsics() }
 
+
 class SyntaxVisitor(ast.NodeVisitor):
-    
-    _globals = set()
-    _locals = set()
-    _module_scope = True
-    _semlist = semantics.SemanticList()
-    _module_name = ""
+    _static_functions = {}
     
     def __init__(self,module_name,module_scope=True):
         super(SyntaxVisitor,self).__init__()
+        self._globals = set()
+        self._locals = set()
         self._module_name = module_name
         self._module_scope = module_scope
-    
+        self._semlist = semantics.SemanticList()
+
     def visit_Module(self,node):
         print "Module node: %r, node._fields: %r" % (node,node._fields)
         super(SyntaxVisitor,self).generic_visit(node)
@@ -85,10 +84,14 @@ class SyntaxVisitor(ast.NodeVisitor):
         for d in node.decorator_list:
             decorator_list.append(self.visit(d))
         print "Decorators: %r" % decorator_list
-        cv = SyntaxVisitor(self._module_name,module_scope=False)
+        sv = SyntaxVisitor(self._module_name,module_scope=False)
         for child in node.body:
-            cv.visit(child)
-        self._semlist.store_global(name,cv)
+            sv.visit(child)
+        if '__intrinsic__.staticfunction' in decorator_list:
+            static_name = self._module_name + '.' + name
+            self._static_functions[static_name] = sv
+        else:
+            self._semlist.store_global(name,sv)
     
     def visit_Pass(self,node):
         pass

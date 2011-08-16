@@ -24,19 +24,16 @@ class VariableStoreOp(object):
         self.source = source
 
 class VariableInfo(object):
-    type = TYPE_UNKNOWN
     def __init__(self,type=TYPE_UNKNOWN):
         self.type = type
 
 
 class SemanticList(object):
     
-    _globals = dict()
-    _locals = dict()
-    
-    _asm = assembler.Assembler()
-    
     def __init__(self):
+        self._globals = dict()
+        self._locals = dict()
+        self._asm = assembler.Assembler()
         self.function_prefix()
     
     def get_assembler(self):
