@@ -16,6 +16,7 @@ static PyObject *get_symbol_address(PyObject *self,PyObject *args);
 PyMODINIT_FUNC initasmhelper(void);
 
 long mytest_function(void);
+long other_function(void);
 
 typedef long (*user_func_t)(void);
 
@@ -45,6 +46,7 @@ static PyObject *run_memory(PyObject *self,PyObject *args)
 
 long mytest_function(void)
 {
+    malloc(1);
     return 0;
 }
 

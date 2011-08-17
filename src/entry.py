@@ -2,6 +2,8 @@
 
 import argparse
 import ast
+import os.path
+
 import assembler
 import asmhelper
 import syntax
@@ -16,23 +18,6 @@ def _hexdump(src, length=8):
         result.append( b"%04x   %-*s   %s" % (i, length*(digits + 1), hexa, text) )
     return b'\n'.join(result)
 
-def read_file(name,module_name=None):
-    if module_name is None:
-        module_name = name
-    print "Opening file: %s" % name
-    file = open(name)
-    source = file.read()
-    root_node = ast.parse(source,name)
-    
-    print "Got root_node: %r" % root_node
-    print "Dump: %s" % ast.dump(root_node)
-    
-    sv = syntax.SyntaxVisitor(module_name)
-    sv.visit(root_node)
-    sl = sv.get_semantic_list()
-    sl.return_(-1)
-    asm = sl.get_assembler()
-    return asm.get_op_string()
 
 if __name__ == '__main__':
     
@@ -40,24 +25,44 @@ if __name__ == '__main__':
     parser.add_argument('file',help='python file to run')
     args = parser.parse_args()
 
-    compiler_ops = read_file('lib/compiler.py','__compiler__')
-    ops = read_file(args.file,'__main__')
+
+    def read_file(name,module_names=None):
+        if module_names is None:
+            module_names = [name]
+        print "Opening file: %s" % name
+        file = open(name)
+        source = file.read()
+        root_node = ast.parse(source,name)
+        print "Got root_node: %r" % root_node
+        print "Dump: %s" % ast.dump(root_node)
+        sv = syntax.SyntaxVisitor(module_names=module_names)
+        sv.visit(root_node)
+
+    read_file('lib/compiler.py',['__compiler__'])
+    mod_name = os.path.splitext(os.path.basename(args.file))[0]
+    read_file(args.file,['__main__',mod_name])
+
+    linker = assembler.Linker()
+    sls = syntax.SyntaxVisitor.get_semantic_lists()
+    for sl in sls:
+        asm = sl.get_assembler()
+        linker.add_assembly(asm)
+    text = linker.get_text()
     
     print "Static Functions: ----"
     sfmap = syntax.SyntaxVisitor.get_static_functions()
     for k,v in sfmap.iteritems():
-        print "  %s:%s" % (k,v)
+        print "  %s = %s" % (k,v)
     print "----"
     
-    print "compiler_ops: %r" % compiler_ops
-    print "ops: %r" % ops
+    print "text: %r" % text
     
-    print "hexdump(ops): ----"
-    print _hexdump(ops)
+    print "hexdump(text): ----"
+    print _hexdump(str(text))
     print "----"
     
-    ret = asmhelper.run_memory(ops)
-    print "ret: ", ret
+    #ret = asmhelper.run_memory(ops)
+    #print "ret: ", ret
     
     print "Done"
 

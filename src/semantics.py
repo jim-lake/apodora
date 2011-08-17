@@ -30,14 +30,23 @@ class VariableInfo(object):
 
 class SemanticList(object):
     
-    def __init__(self):
+    def __init__(self,module):
+        self._module = module
         self._globals = dict()
         self._locals = dict()
         self._asm = assembler.Assembler()
-        self.function_prefix()
     
     def get_assembler(self):
         return self._asm
+
+    def start_module(self):
+        module_start_label = self._module.name + ':__start__'
+        self._asm.add_label(module_start_label)
+        self.function_prefix()
+
+    def end_module(self):
+        self.function_cleanup()
+        self._asm.RETQ()
     
     def store_global(self,target,source):
         if target in self._globals:

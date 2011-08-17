@@ -9,27 +9,47 @@ class Intrinsics(object):
 
 intrinsics = { '__intrinsic__': Intrinsics() }
 
+class Module(object):
+    def __init__(self,name):
+        self.name = name
 
 class SyntaxVisitor(ast.NodeVisitor):
     _static_functions = {}
+    _semlists = []
+    _modules = {}
     
-    def __init__(self,module_name,module_scope=True):
+    def __init__(self,module=None,module_names=None,module_scope=True):
         super(SyntaxVisitor,self).__init__()
         self._globals = set()
         self._locals = set()
-        self._module_name = module_name
+        if module is not None:
+            self._module = module
+        elif module_names is not None:
+            module_name = module_names[0]
+            if module_name in self._modules:
+                self._module = self._modules[module_name]
+            else:
+                self._module = Module(module_name)
+                self._modules[module_name] = self._module
         self._module_scope = module_scope
-        self._semlist = semantics.SemanticList()
+        self._semlist = semantics.SemanticList(self._module)
 
     @classmethod
     def get_static_functions(cls):
         return cls._static_functions
 
+    @classmethod
+    def get_semantic_lists(cls):
+        return cls._semlists;
+
     def visit_Module(self,node):
         print "Module node: %r, node._fields: %r" % (node,node._fields)
-        #sv = SyntaxVisitor(self._module_name,module_scope=True)
+        sv = SyntaxVisitor(module=self._module,module_scope=True)
+        sv._semlist.start_module()
         for node in node.body:
-            self.visit(node)
+            sv.visit(node)
+        sv._semlist.end_module()
+        self._semlists.append(sv._semlist)
     
     def visit_Assign(self,node):
         if len(node.targets) == 1:
@@ -90,11 +110,11 @@ class SyntaxVisitor(ast.NodeVisitor):
         for d in node.decorator_list:
             decorator_list.append(self.visit(d))
         print "Decorators: %r" % decorator_list
-        sv = SyntaxVisitor(self._module_name,module_scope=False)
+        sv = SyntaxVisitor(module=self._module,module_scope=False)
         for child in node.body:
             sv.visit(child)
         if '__intrinsic__.staticfunction' in decorator_list:
-            static_name = self._module_name + '.' + name
+            static_name = self._module.name + '.' + name
             self._static_functions[static_name] = sv
         else:
             self._semlist.store_global(name,sv)
@@ -115,6 +135,3 @@ class SyntaxVisitor(ast.NodeVisitor):
     def generic_visit(self,node):
         raise NotImplementedError("Don't support node type: %r" % node)
     
-    def get_semantic_list(self):
-        return self._semlist;
-
