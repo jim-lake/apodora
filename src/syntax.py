@@ -30,7 +30,8 @@ class SyntaxVisitor(ast.NodeVisitor):
                 self._module = self._modules[module_name]
             else:
                 self._module = Module(module_name)
-                self._modules[module_name] = self._module
+                for name in module_names:
+                    self._modules[name] = self._module
         self._module_scope = module_scope
         self._semlist = semantics.SemanticList(self._module)
 
@@ -41,6 +42,10 @@ class SyntaxVisitor(ast.NodeVisitor):
     @classmethod
     def get_semantic_lists(cls):
         return cls._semlists;
+        
+    @classmethod
+    def get_modules(cls):
+        return cls._modules
 
     def visit_Module(self,node):
         print "Module node: %r, node._fields: %r" % (node,node._fields)
@@ -131,6 +136,25 @@ class SyntaxVisitor(ast.NodeVisitor):
         attr = node.attr
         temp = value.load_attr(attr)
         return temp
+        
+    def visit_If(self,node):
+        test = self.visit(node.test)
+        for n in node.body:
+            self.visit(n)
+    
+    def visit_Compare(self,node):
+        left = self.visit(node.left)
+        if len(node.comparators) != 1 or len(node.ops) != 1:
+            raise NotImplementedError("Don't support this compare node: %s" % ast.dump(node))
+        comparator = self.visit(node.comparators[0])
+        op = type(node.ops[0])
+        if op == ast.Eq:
+            ret = self._semlist.eq_(left,comparator)
+        else:
+            raise NotImplementedError("Don't support this compare node: %s" % ast.dump(node))
+        self._semlist.release_temp(left)
+        self._semlist.release_temp(comparator)
+        return ret
     
     def generic_visit(self,node):
         raise NotImplementedError("Don't support node type: %r" % node)

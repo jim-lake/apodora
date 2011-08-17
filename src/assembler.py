@@ -90,5 +90,5 @@ class Linker(object):
 
         print "labels: %r" % labels
         print "address_resolutions: %r" % address_resolutions
-        return text
+        return str(text)
 

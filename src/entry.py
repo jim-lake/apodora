@@ -38,7 +38,7 @@ if __name__ == '__main__':
         sv = syntax.SyntaxVisitor(module_names=module_names)
         sv.visit(root_node)
 
-    read_file('lib/compiler.py',['__compiler__'])
+    #read_file('lib/compiler.py',['__compiler__'])
     mod_name = os.path.splitext(os.path.basename(args.file))[0]
     read_file(args.file,['__main__',mod_name])
 
@@ -54,15 +54,22 @@ if __name__ == '__main__':
     for k,v in sfmap.iteritems():
         print "  %s = %s" % (k,v)
     print "----"
+
+    print "Modules: ----"
+    module_map = syntax.SyntaxVisitor.get_modules()
+    for k,v in module_map.iteritems():
+        print "  %s = %s" % (k,v)
+    print "----"
+
     
     print "text: %r" % text
     
     print "hexdump(text): ----"
-    print _hexdump(str(text))
+    print _hexdump(text)
     print "----"
     
-    #ret = asmhelper.run_memory(ops)
-    #print "ret: ", ret
+    ret = asmhelper.run_memory(text)
+    print "ret: ", ret
     
     print "Done"
 

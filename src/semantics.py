@@ -98,9 +98,13 @@ class SemanticList(object):
             self._asm.MOVQ_RAX_IMM(value)
         else:
             raise NotImplementedError("Unsupported return value")
-        
         self.function_cleanup()
         self._asm.RETQ()
+    
+    def eq_(self,left,right):
+        temp = AsmTemp(self)
+        print "OR: %s=%s|%s" % (temp,left,right)
+        return temp
     
     def function_prefix(self):
         # Save RBP
