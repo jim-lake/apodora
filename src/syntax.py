@@ -138,9 +138,12 @@ class SyntaxVisitor(ast.NodeVisitor):
         return temp
         
     def visit_If(self,node):
-        test = self.visit(node.test)
-        for n in node.body:
-            self.visit(n)
+        test_cookie = self.visit(node.test)
+        if test_cookie.should_emit_if_body():
+            cookie = self._semlist.start_if(test_cookie)
+            for n in node.body:
+                self.visit(n)
+            self._semlist.end_if(cookie)
     
     def visit_Compare(self,node):
         left = self.visit(node.left)
@@ -149,7 +152,7 @@ class SyntaxVisitor(ast.NodeVisitor):
         comparator = self.visit(node.comparators[0])
         op = type(node.ops[0])
         if op == ast.Eq:
-            ret = self._semlist.eq_(left,comparator)
+            ret = self._semlist.cmp_eq(left,comparator)
         else:
             raise NotImplementedError("Don't support this compare node: %s" % ast.dump(node))
         self._semlist.release_temp(left)

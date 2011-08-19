@@ -8,10 +8,14 @@ INT32_MIN = -pow(2,31)
 class RelativeAddress32(object):
     def __init__(self,label):
         self.label = label
+    def __str__(self):
+        return "RelativeAddress32(label=%s)" % self.label
 
 class TextLabel(object):
     def __init__(self,name):
         self.name = name
+    def __str__(self):
+        return "TextLabel(name=%s)" % self._name
 
 class Assembler(object):
 
@@ -27,7 +31,7 @@ class Assembler(object):
         self.ops.append('\xe8')
         self.ops.append(RelativeAddress32(label))
 
-    def MOVQ_RAX_IMM(self,imm):
+    def MOV_RAX_IMM(self,imm):
         if imm == 0:
             self.XOR_RAX_RAX()
         elif imm > 0 and imm < INT32_MAX:
@@ -53,6 +57,13 @@ class Assembler(object):
     
     def POPQ_RBP(self):
         self.ops.append('\x5d')
+        
+    def JNE_REL32(self,label):
+        self.ops.append('\x0f\x85')
+        self.ops.append(RelativeAddress32(label))
+    
+    def CMP_REG_REG(self,reg1,reg2):
+        raise NotImplementedError("Unsupported instruction type")
     
 class Linker(object):
     def __init__(self):
@@ -86,9 +97,9 @@ class Linker(object):
                     address_resolutions.append(ar)
                     text.extend('\xDE\xAD\xBE\xEF')
                 else:
-                    raise NotImplementedError("Unsupported ASM OP: %r" % op)
+                    raise NotImplementedError("Unsupported ASM OP: %s" % op)
 
-        print "labels: %r" % labels
-        print "address_resolutions: %r" % address_resolutions
+        print "labels: %s" % labels
+        print "address_resolutions: %s" % address_resolutions
         return str(text)
 

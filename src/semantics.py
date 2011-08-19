@@ -18,15 +18,37 @@ TYPE_INT = 1
 TYPE_FLOAT = 2
 TYPE_OBJECT = 3
 
-class VariableStoreOp(object):
-    def __init__(self,target,source):
-        self.target = target
-        self.source = source
-
 class VariableInfo(object):
     def __init__(self,type=TYPE_UNKNOWN):
         self.type = type
 
+class TestCookie(object):
+    def __init__(self,is_static,static_value=True):
+        self._is_static = is_static
+        self._static_value = static_value
+    def should_emit_if_body(self):
+        if not self._is_static:
+            return True
+        elif self._static_value:
+            return True
+        else:
+            return False
+    def should_emit_else_body(self):
+        if not self._is_static:
+            return True
+        elif self._static_value:
+            return False
+        else:
+            return True
+    def is_dynamic(self):
+        return not self._is_static
+
+class LabelCookie(object):
+    _counter = 0
+    def __init__(self,prefix):
+        self._prefix = prefix
+        self.label = "label:%s:%d" % (prefix,self._counter)
+        self._counter += 1
 
 class SemanticList(object):
     
@@ -95,16 +117,33 @@ class SemanticList(object):
     def return_(self,value):
         print "Return: %s" % value
         if type(value) is int:
-            self._asm.MOVQ_RAX_IMM(value)
+            self._asm.MOV_RAX_IMM(value)
         else:
             raise NotImplementedError("Unsupported return value")
         self.function_cleanup()
         self._asm.RETQ()
     
-    def eq_(self,left,right):
-        temp = AsmTemp(self)
-        print "OR: %s=%s|%s" % (temp,left,right)
-        return temp
+    def cmp_eq(self,left,right):
+        print "Compare EQ: %s == %s" % (left,right)
+        if type(left) == AsmTemp and type(right) == AsmTemp:
+            self._asm.CMP_REG_REG(left,right)
+            return TestCookie(False)
+        elif type(left) == int and type(right) == int:
+            return TestCookie(True,left == right)
+        else:
+            raise NotImplementedError("Unsupported cmq_eq")
+            
+    
+    def start_if(self,test_cookie):
+        print "Start If"
+        cookie = LabelCookie("If")
+        if cmp_cookie.is_dynamic():
+            self._asm.JNE_REL32(cookie.label)
+        return cookie
+    
+    def end_if(self,cookie):
+        print "End If"
+        self._asm.add_label(cookie.label)
     
     def function_prefix(self):
         # Save RBP
