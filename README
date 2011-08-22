@@ -26,24 +26,24 @@ In Running Code (in the assembly):
 - Module Startup
 
  - malloc module
- - set __internalclass__ 
+ - set __layout__ 
  - store &module in static address for module
 
 - Add a global 
 
  - malloc new module
  - copy memory from old to new
- - set new __internalclass__
+ - set new __layout__
  - store &module in static address for module
 
 - Read a global
 
- - Check cached internal class with current __internalclass__
+ - Check cached internal class with current __layout__
  - if same:
   - load offset
  - else:
   - offset = __compiler__.get_offset(module,name)
-  - __compiler__.fixup_inline_cache(module,module.__internalclass__,offset)
+  - __compiler__.fixup_inline_cache(module,module.__layout__,offset)
  - read from offset
 
 -------
@@ -57,5 +57,18 @@ Where things go:
 
 - Inline intrinsics implemented in the SemanticList as functions, available as static functions on __intrinsic__
 - Functional intrinsics implemented in lib/__compiler__.py, available as static functions on __compiler__
+
+
+------------
+
+Layout Objects
+- Size of everything in x64 is 64bit
+
+size_t size
+name_type_hash last_add
+pointer prev_layout
+pointer add_list
+
+
 
 

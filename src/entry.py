@@ -7,6 +7,7 @@ import os.path
 import assembler
 import asmhelper
 import syntax
+import semantics
 
 def _hexdump(src, length=8):
     result = []
@@ -19,12 +20,17 @@ def _hexdump(src, length=8):
     return b'\n'.join(result)
 
 
+def get_premain():
+    module = syntax.Module('__intrinsic__')
+    semlist = semantics.SemanticList(module)
+    semlist.premain()
+    return semlist
+
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Run some python')
     parser.add_argument('file',help='python file to run')
     args = parser.parse_args()
-
 
     def read_file(name,module_names=None):
         if module_names is None:
@@ -43,10 +49,17 @@ if __name__ == '__main__':
     read_file(args.file,['__main__',mod_name])
 
     linker = assembler.Linker()
+    premain = get_premain()
+    linker.add_assembly(premain.get_assembler())
     sls = syntax.SyntaxVisitor.get_semantic_lists()
     for sl in sls:
         asm = sl.get_assembler()
         linker.add_assembly(asm)
+    
+    data_entries = assembler.DataSegment.get_data()
+    for d in data_entries:
+        linker.add_data(d)
+        
     text = linker.get_text()
     
     print "Static Functions: ----"
@@ -68,8 +81,8 @@ if __name__ == '__main__':
     print _hexdump(text)
     print "----"
     
-    ret = asmhelper.run_memory(text)
-    print "ret: ", ret
+    #ret = asmhelper.run_memory(text)
+    #print "ret: ", ret
     
     print "Done"
 

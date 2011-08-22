@@ -50,10 +50,10 @@ class SyntaxVisitor(ast.NodeVisitor):
     def visit_Module(self,node):
         print "Module node: %r, node._fields: %r" % (node,node._fields)
         sv = SyntaxVisitor(module=self._module,module_scope=True)
-        sv._semlist.start_module()
+        sv._semlist.module_start()
         for node in node.body:
             sv.visit(node)
-        sv._semlist.end_module()
+        sv._semlist.module_end()
         self._semlists.append(sv._semlist)
     
     def visit_Assign(self,node):

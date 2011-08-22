@@ -1,15 +1,15 @@
 
 # Compiler Support
 
-INTERNAL_CLASS_SIZE = 8 + 8
+CLASS_LAYOUT_SIZE = 8 + 8
 
 
 
 @__intrinsic__.staticfunction
 def add_property_to_object(object,name_type_hash,value):
-    internal_class = __intrinsic__.load_object_offset(object,0)
-    object_size = __intrinsic__.load_object_offset(internal_class,0)
-    object_adds = __intrinsic__.load_object_offset(internal_class,8)
+    class_layout = __intrinsic__.load_object_offset(object,0)
+    object_size = __intrinsic__.load_object_offset(class_layout,0)
+    object_adds = __intrinsic__.load_object_offset(class_layout,8)
     num_adds = __intrinsic__.load_object_offset(object_adds,0)
     num = 0
     next_class = None
@@ -23,7 +23,7 @@ def add_property_to_object(object,name_type_hash,value):
         next_class_adds = __intrinsic__.malloc(8)
         __intrinsic__.write_object_offset(next_class_adds,0,0)
 
-        next_class = __intrinsic__.malloc(INTERNAL_CLASS_SIZE)
+        next_class = __intrinsic__.malloc(CLASS_LAYOUT_SIZE)
         __intrinsic__.write_object_offset(next_class,0,object_size + 8)
         __intrinsic__.write_object_offset(next_class,8,next_class_adds)
         
