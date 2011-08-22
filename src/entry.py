@@ -59,7 +59,10 @@ if __name__ == '__main__':
     data_entries = assembler.DataSegment.get_data()
     for d in data_entries:
         linker.add_data(d)
-        
+    
+    print "Data Length: %d" % linker.get_data_len()
+    
+    
     text = linker.get_text()
     
     print "Static Functions: ----"

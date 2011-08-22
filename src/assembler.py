@@ -5,45 +5,70 @@ import struct
 INT32_MAX = pow(2,31) - 1
 INT32_MIN = -pow(2,31)
 
+def _hexdump(src, length=16):
+    result = []
+    digits = 4 if isinstance(src, unicode) else 2
+    for i in xrange(0, len(src), length):
+        s = src[i:i+length]
+        hexa = b' '.join(["%0*x" % (digits, ord(x))  for x in s])
+        text = b''.join([x if 0x20 <= ord(x) < 0x7F else b'.'  for x in s])
+        result.append( b"%04x   %-*s   %s" % (i, length*(digits + 1), hexa, text) )
+    return b'\n'.join(result)
+
+
 class AbsoluteAddress32(object):
     def __init__(self,label):
         self.label = label
+    def __repr__(self):
+        return str(self)
     def __str__(self):
         return "AbsoluteAddress32(label=%s)" % self.label
 
 class AbsoluteAddress64(object):
     def __init__(self,label):
         self.label = label
+    def __repr__(self):
+        return str(self)
     def __str__(self):
         return "AbsoluteAddress64(label=%s)" % self.label
 
 class RelativeAddress32(object):
     def __init__(self,label):
         self.label = label
+    def __repr__(self):
+        return str(self)
     def __str__(self):
         return "RelativeAddress32(label=%s)" % self.label
 
 class TextLabel(object):
     def __init__(self,name):
         self.name = name
+    def __repr__(self):
+        return str(self)
     def __str__(self):
-        return "TextLabel(name=%s)" % self._name
+        return "TextLabel(name=%s)" % self.name
 
 class DataPointer(object):
     def __init__(self,name,value):
         self.name = name
         self.value = value
+    def __repr__(self):
+        return str(self)
+    def __str__(self):
+        return "DataPointer(name=%s,initial value=%s)" % (self.name,self.value)
 
 class DataSegment(object):
     _values = []
     
     @classmethod
     def add_pointer(cls,name,value):
-        cls._values = DataPointer(name,value)
+        dp = DataPointer(name,value)
+        print "Add pointer: %s" % dp
+        cls._values.append(dp)
 
     @classmethod
     def get_data(cls):
-        cls._values
+        return cls._values
 
 class Register(object):
     def __init__(self,name,bitmask):
@@ -52,6 +77,10 @@ class Register(object):
         self.available = True
     
 C_CALL_CLOBBER_REGS = ('RAX','RCX','RDX','RSI','RDI','R8','R9','R10','R11')
+
+C_CALL_REG_ARG_SEQUENCE = ('RDI','RSI','RDX','RCX','R8','R9')
+
+C_CALL_REG_RETURN_SEQUENCE = ('RAX','RDX')
 
 class RegisterAllocator(object):
     def __init__(self):
@@ -81,6 +110,7 @@ class RegisterAllocator(object):
         raise NotImplementedError("Out of registers!")
     
     def free_reg(self,reg):
+        print "Free reg: ", reg.name
         reg.available = True
 
     def used_c_call_clobber_regs(self):
@@ -89,6 +119,12 @@ class RegisterAllocator(object):
             if r.name in C_CALL_CLOBBER_REGS and not r.available:
                 outs.append(r)
         return outs
+
+    def get_reg_by_name(self,name):
+        for r in self._registers:
+            if r.name == name:
+                return r
+        raise ValueError("Unknown register: %s" % name)
 
 def _make_rex_modrm(rm=None,reg=None,offset=None,w=True):
     if offset == None:
@@ -131,19 +167,33 @@ class Assembler(object):
     def release_reg(self,reg):
         self._regs.free_reg(reg)
     
-    def call_c_function(self,name,*args):
+    def call_c_function(self,function_name,*args):
         pushs = self._regs.used_c_call_clobber_regs()
         for r in pushs:
             self.PUSH_REG(r)
-
-        
-        
+        arg_num = 0
+        for a in args:
+            if type(a) == int:
+                reg_name = C_CALL_REG_ARG_SEQUENCE[arg_num]
+                reg = self._regs.get_reg_by_name(reg_name)
+                self.MOV_REG_IMM(reg,a)
+            else:
+                raise NotImplementedError("Non immediate arguments not implemented")
+        rax = self._regs.get_reg_by_name('RAX')
+        function_symbol = 'c-call:' + function_name
+        self.MOV_REG_ABS64(rax,function_symbol)
+        self.CALL_REG(rax)
+        ret_reg = self._regs.allocate_reg()
+        self.MOV_REG_REG(ret_reg,rax)
         for r in reversed(pushs):
             self.POP_REG(r)
-        
-
+        return ret_reg
     
     # Functions that equate to Intel x64 instructions
+
+    def CALL_REG(self,reg):
+        rex,modrm = _make_rex_modrm(rm=reg)
+        self.ops.append(rex + '\xFF' + modrm)
 
     def CALL_REL32(self,label):
         self.ops.append('\xe8')
@@ -162,8 +212,13 @@ class Assembler(object):
             raise NotImplementedError("Unsupported immediate: %d" % imm)
 
         
-    def MOV_REG_IMM(self,imm):
-        reg = self._regs.allocate_reg()
+    def MOV_REG_IMM(self,arg1,arg2=None):
+        if arg2 is None:
+            reg = self._regs.allocate_reg()
+            imm = arg1
+        else:
+            reg = arg1
+            imm = arg2
         rex,modrm = _make_rex_modrm(rm=reg)
         if abs(imm) < INT32_MAX:
             imm_bytes = struct.pack("=i",imm)
@@ -194,12 +249,21 @@ class Assembler(object):
         self.ops.append(AbsoluteAddress32(label))
         return reg
 
-    def MOV_REG_ABS64(self,label):
-        reg = self._regs.allocate_reg()
+    def MOV_REG_ABS64(self,arg1,arg2=None):
+        if arg2 == None:
+            reg = self._regs.allocate_reg()
+            label = arg1
+        else:
+            reg = arg1
+            label = arg2
         rex,opcode = _make_rex_opcode(0xb8,reg)
         self.ops.append(rex + opcode)
         self.ops.append(AbsoluteAddress64(label))
         return reg
+        
+    def MOV_REG_REG(self,dest,src):
+        rex,modrm = _make_rex_modrm(rm=dest,reg=src)
+        self.ops.append(rex + '\x89' + modrm)
 
     def XOR_RAX_RAX(self):
         self.ops.append('\x31\xc0')
@@ -243,7 +307,11 @@ class Linker(object):
         self._data.append(data)
     
     def get_data(self):
-        return ''.join(_data)
+        for d in self._data:
+            pass
+
+    def get_data_len(self):
+        return len(self._data)*8
 
     def set_data_address(self,addr):
         self._data_address = addr
@@ -261,36 +329,38 @@ class Linker(object):
                 elif type(op) in (RelativeAddress32,AbsoluteAddress32):
                     ar = { 'op': op, 'offset': len(text) }
                     address_resolutions.append(ar)
-                    text.extend('\xDE\xAD\xBE\xEF')
+                    text.extend('*--*')
                 elif type(op) == AbsoluteAddress64:
                     ar = { 'op': op, 'offset': len(text) }
                     address_resolutions.append(ar)
-                    text.extend('\x12\x34\x56\x78\x90\xab\xcd\xef')
+                    text.extend('**----**')
                 else:
                     raise NotImplementedError("Unsupported ASM OP: %s" % op)
 
         print "labels: %s" % labels
         print "address_resolutions: %s" % address_resolutions
-        print "text(pre-resolve): %r" % text
+        print "text(pre-resolve): ----"
+        print _hexdump(str(text))
+        print "----"
 
         for ar in address_resolutions:
             op = ar['op']
             if type(op) == RelativeAddress32:
-                i = ar['offset']
+                src = ar['offset']
                 dst = labels[op.label]
-                delta = dst - src
+                delta = dst - ( src + 4 )
                 bytes = struct.pack("=i",delta)
-                text[i:i+4] = bytes
+                text[src:src+4] = bytes
             elif type(op) == AbsoluteAddress32:
-                i = ar['offset']
+                src = ar['offset']
                 dst = labels[op.label]
                 bytes = struct.pack("=i",dst)
-                text[i:i+4] = bytes
+                text[src:src+4] = bytes
             elif type(op) == AbsoluteAddress64:
-                i = ar['offset']
+                src = ar['offset']
                 dst = labels[op.label]
                 bytes = struct.pack("=q",dst)
-                text[i:i+8] = bytes
+                text[src:src+8] = bytes
             else:
                 raise NotImplementedError("Unknown address resolution type: %r" % op)
 

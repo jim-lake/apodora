@@ -81,7 +81,7 @@ class SemanticList(object):
         function_start_label = self._module.name + ':' + name + ':entry'
         self._function_prefix(function_start_label)
     
-    def function_end(self,name):
+    def function_end(self):
         self._function_cleanup()
         self._asm.RETQ()
     

@@ -11,14 +11,58 @@
 
 const size_t PAGE_SIZE = 4096;
 
+static PyObject *
 static PyObject *run_memory(PyObject *self,PyObject *args);
 static PyObject *get_symbol_address(PyObject *self,PyObject *args);
 PyMODINIT_FUNC initasmhelper(void);
 
+void *debug_malloc(size_t s);
 long mytest_function(void);
-long other_function(void);
 
 typedef long (*user_func_t)(void);
+
+static void *g_pointers[256];
+static int g_num_pointers = 0;
+
+
+static PyObject *alloc_memory(PyObject *self,PyObject *args)
+{
+    static bool once = true;
+    if( once )
+    {
+        once = false;
+        memset(pointers,0,sizeof(pointers));
+    }
+    size_t len = 0;
+    if( !PyArg_ParseTuple(args,"k",&len) )
+		return NULL;
+    
+    const size_t alloc_size = (len / PAGE_SIZE + 1) * PAGE_SIZE; 
+    printf("valloc(%ld)\n",alloc_size);
+    void *p = valloc(alloc_size);
+    g_pointers[g_num_pointers++] = p;
+    printf("Return address: 0x%016lx\n",ret);
+    PyObject *obj = PyInt_FromSize_t(p);
+	return obj;
+}
+
+static PyObject *write_memory(PyObject *self,PyObject *args)
+{
+    unsigned long pointer_long = 0;
+    int len = 0;
+	const char *pdata_block = NULL;
+    
+    if( !PyArg_ParseTuple(args,"kt#",&pointer_long,&pdata_block,&len) )
+		return NULL;
+    
+    void *p = (void *)pointer_long;
+
+    printf("Write data to 0x%016lx, len: %d\n",p,len);
+    memcpy(p,pdata_block,len);
+    
+    Py_INCREF(Py_None);
+    return Py_None; 
+}
 
 static PyObject *run_memory(PyObject *self,PyObject *args)
 {
@@ -49,6 +93,11 @@ long mytest_function(void)
     malloc(1);
     return 0;
 }
+void *debug_malloc(size_t s)
+{
+    printf("debug_malloc(%ld)\n",s);
+    return malloc(s);
+}
 
 
 static PyObject *get_symbol_address(PyObject *self,PyObject *args)
@@ -69,6 +118,12 @@ static PyObject *get_symbol_address(PyObject *self,PyObject *args)
 
 static PyMethodDef asmhelper_methods[] = 
 {
+    {"alloc_memory",alloc_memory, METH_VARARGS,
+    "Allocate a block of memory"},
+    
+    {"write_memory",write_memory, METH_VARARGS,
+    "Write to an allocted block of memory"},
+
 	{"run_memory",run_memory, METH_VARARGS,
     "Run a chuck of memory"},
     
