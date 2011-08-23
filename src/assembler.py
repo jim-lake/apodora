@@ -129,7 +129,7 @@ class RegisterAllocator(object):
                 return r
         raise ValueError("Unknown register: %s" % name)
 
-def _make_rex_modrm(rm=None,reg=None,offset=None,w=True,call=False):
+def _make_rex_modrm(rm=None,reg=None,offset=None,w=True,extension=0):
     if offset == None:
         modrm = 0xc0
     elif offset == 0:
@@ -140,7 +140,7 @@ def _make_rex_modrm(rm=None,reg=None,offset=None,w=True,call=False):
         raise NotImplementedError("Only support 64bit operation")
     
     rm = rm.bitmask if rm else 0
-    reg = reg.bitmask if reg else 0
+    reg = reg.bitmask if reg else extension
     w = 1 if w else 0
     rm_high = 1 if rm & 0x8 else 0
     reg_high = 1 if reg & 0x8 else 0
@@ -152,7 +152,7 @@ def _make_rex_modrm(rm=None,reg=None,offset=None,w=True,call=False):
     print "rex=%x,modrm=%x" % (rex,modrm)
     rex = struct.pack("=B",rex)
     modrm = struct.pack("=B",modrm)
-    if call and not rm_high:
+    if not w and not reg_high and not rm_high:
         rex = ''
     return rex,modrm
 
@@ -203,7 +203,7 @@ class Assembler(object):
 
     def CALL_REG(self,reg):
         print "CALL_REG(%s)" % reg
-        rex,modrm = _make_rex_modrm(rm=reg,w=False,call=True)
+        rex,modrm = _make_rex_modrm(rm=reg,w=False,extension=2)
         self.ops.append(rex + '\xFF' + modrm)
         print "OPCODE: %x,%x,%x" % (ord(rex if rex else '\x00'),ord('\xff'),ord(modrm))
 
