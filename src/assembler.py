@@ -1,6 +1,7 @@
 
-
 import struct
+
+import asmhelper
 
 INT32_MAX = pow(2,31) - 1
 INT32_MIN = -pow(2,31)
@@ -75,6 +76,8 @@ class Register(object):
         self.name = name
         self.bitmask = bitmask
         self.available = True
+    def __str__(self):
+        return self.name
     
 C_CALL_CLOBBER_REGS = ('RAX','RCX','RDX','RSI','RDI','R8','R9','R10','R11')
 
@@ -126,7 +129,7 @@ class RegisterAllocator(object):
                 return r
         raise ValueError("Unknown register: %s" % name)
 
-def _make_rex_modrm(rm=None,reg=None,offset=None,w=True):
+def _make_rex_modrm(rm=None,reg=None,offset=None,w=True,call=False):
     if offset == None:
         modrm = 0xc0
     elif offset == 0:
@@ -141,10 +144,17 @@ def _make_rex_modrm(rm=None,reg=None,offset=None,w=True):
     w = 1 if w else 0
     rm_high = 1 if rm & 0x8 else 0
     reg_high = 1 if reg & 0x8 else 0
-    
+    if call:
+        reg = 0x2
+    print "rm=%x,reg=%x,modrm=%x" % (rm,reg,modrm)
     rex = 0x40 | w << 3 | rm_high << 2 | reg_high
-    modrm = modrm | (rm & 0x7) << 3 | (reg & 0x7)
-    return struct.pack("=B",rex),struct.pack("=B",modrm)
+    modrm = modrm | (reg & 0x7) << 3 | (rm & 0x7)
+    print "rex=%x,modrm=%x" % (rex,modrm)
+    rex = struct.pack("=B",rex)
+    modrm = struct.pack("=B",modrm)
+    if call and not rm_high:
+        rex = ''
+    return rex,modrm
 
 def _make_rex_opcode(opcode,reg=None,w=True):
     reg = reg.bitmask if reg else 0
@@ -192,14 +202,18 @@ class Assembler(object):
     # Functions that equate to Intel x64 instructions
 
     def CALL_REG(self,reg):
-        rex,modrm = _make_rex_modrm(rm=reg)
+        print "CALL_REG(%s)" % reg
+        rex,modrm = _make_rex_modrm(rm=reg,w=False,call=True)
         self.ops.append(rex + '\xFF' + modrm)
+        print "OPCODE: %x,%x,%x" % (ord(rex if rex else '\x00'),ord('\xff'),ord(modrm))
 
     def CALL_REL32(self,label):
+        print "CALL_REL32(%s)" % label
         self.ops.append('\xe8')
         self.ops.append(RelativeAddress32(label))
 
     def MOV_RAX_IMM(self,imm):
+        print "MOV_RAX_IMM(%d)" % imm
         if imm == 0:
             self.XOR_RAX_RAX()
         elif imm > 0 and imm < INT32_MAX:
@@ -219,15 +233,18 @@ class Assembler(object):
         else:
             reg = arg1
             imm = arg2
+        print "MOV_REG_IMM(%s,%s)" % (reg,imm)
         rex,modrm = _make_rex_modrm(rm=reg)
         if abs(imm) < INT32_MAX:
             imm_bytes = struct.pack("=i",imm)
             self.ops.append(rex + '\xc7' + modrm + imm_bytes)
+            print "OPCODE: %x,%x,%x" % (ord(rex),ord('\xc7'),ord(modrm))
         else:
             raise NotImplementedError("Unsuppported immediate: %d" % imm)
         return reg
 
     def MOV_MEM_REG(self,dest,src,offset=0):
+        print "MOV_MEM_REG(dest=%s,src=%s,offset=%d)" % (dest,src,offset)
         rex,modrm = _make_rex_modrm(rm=dest,offset=offset,reg=src)
         if offset == 0:
             self.ops.append(rex + '\x89' + modrm)
@@ -238,11 +255,13 @@ class Assembler(object):
             raise NotImplementedError("Unsupported offset: %d" % offset)
 
     def MOV_RIP_REL_REG(self,label,src):
+        print "MOV_RIP_REL_REG(label=%s,src=%s)" % (label,src)
         rex,modrm = _make_rex_modrm(rm='RIP',reg=src)
         self.ops.append(rex + '\x89' + modrm)
         self.ops.append(RelativeAddress32(label))
 
     def MOV_REG_ABS32(self,label):
+        print "MOV_REG_ABS32(%s)" % label
         reg = self._regs.allocate_reg()
         rex,modrm = _make_rex_modrm(rm=reg)
         self.ops.append(rex + '\xc7' + modrm)
@@ -256,39 +275,49 @@ class Assembler(object):
         else:
             reg = arg1
             label = arg2
+        print "MOV_REG_ABS64(reg=%s,label=%s)" % (reg,label)
         rex,opcode = _make_rex_opcode(0xb8,reg)
         self.ops.append(rex + opcode)
         self.ops.append(AbsoluteAddress64(label))
         return reg
         
     def MOV_REG_REG(self,dest,src):
+        print "MOV_REG_REG(dest=%s,src=%s)" % (dest,src)
         rex,modrm = _make_rex_modrm(rm=dest,reg=src)
         self.ops.append(rex + '\x89' + modrm)
 
     def XOR_RAX_RAX(self):
+        print "XOR_RAX_RAX()"
         self.ops.append('\x31\xc0')
 
     def PUSHQ_RBP(self):
+        print "PUSHQ_RBP()"
         self.ops.append('\x55')
         
     def MOVQ_RBP_RSP(self):
+        print "MOVQ_RBP_RSP()"
         self.ops.append('\x48\x89\xe5')
         
     def RETQ(self):
+        print "RETQ()"
         self.ops.append('\xc3')
     
     def POPQ_RBP(self):
+        print "POPQ_RBP()"
         self.ops.append('\x5d')
         
     def PUSH_REG(self,reg):
+        print "PUSH_REG(%s)" % reg
         rex,opcode = _make_rex_opcode(0x50,reg)
         self.ops.append(rex + opcode)
 
     def POP_REG(self,reg):
+        print "POP_REG(%s)" % reg
         rex,opcode = _make_rex_opcode(0x58,reg)
         self.ops.append(rex + opcode)
         
     def JNE_REL32(self,label):
+        print "JNE_REL32(%s)" % label
         self.ops.append('\x0f\x85')
         self.ops.append(RelativeAddress32(label))
     
@@ -299,6 +328,7 @@ class Linker(object):
     def __init__(self):
         self._assemblies = []
         self._data = []
+        self._data_address = None
     
     def add_assembly(self,asm):
         self._assemblies.append(asm)
@@ -317,8 +347,16 @@ class Linker(object):
         self._data_address = addr
     
     def get_text(self):
+        if self._data_address is None:
+            raise NotImplementedError("Data address needed before text generation")
+
         labels = {}
-        address_resolutions = []
+        data = bytearray()
+        for d in self._data:
+            labels[d.name] = len(data) + self._data_address
+            bytes = struct.pack('=Q',d.value)
+            data.extend(bytes)
+        text_address_resolutions = []
         text = bytearray()
         for asm in self._assemblies:
             for op in asm.ops:
@@ -328,42 +366,54 @@ class Linker(object):
                     labels[op.name] = len(text)
                 elif type(op) in (RelativeAddress32,AbsoluteAddress32):
                     ar = { 'op': op, 'offset': len(text) }
-                    address_resolutions.append(ar)
+                    text_address_resolutions.append(ar)
                     text.extend('*--*')
                 elif type(op) == AbsoluteAddress64:
                     ar = { 'op': op, 'offset': len(text) }
-                    address_resolutions.append(ar)
+                    text_address_resolutions.append(ar)
                     text.extend('**----**')
                 else:
                     raise NotImplementedError("Unsupported ASM OP: %s" % op)
 
         print "labels: %s" % labels
-        print "address_resolutions: %s" % address_resolutions
+        print "text_address_resolutions: %s" % text_address_resolutions
         print "text(pre-resolve): ----"
         print _hexdump(str(text))
         print "----"
 
-        for ar in address_resolutions:
+        def get_addr_for_label(label):
+            if label in labels:
+                return labels[label]
+            elif label.startswith('c-call:'):
+                c_call = label[len('c-call:'):]
+                print "getting address for c_call: ",c_call
+                addr = asmhelper.get_symbol_address(c_call)
+                print "got addr: %x" % addr
+                return addr
+            else:
+                raise ValueError("Failed to find addr for name: %s" % label)
+                
+
+        for ar in text_address_resolutions:
             op = ar['op']
             if type(op) == RelativeAddress32:
                 src = ar['offset']
-                dst = labels[op.label]
+                dst = get_addr_for_label(op.label)
                 delta = dst - ( src + 4 )
                 bytes = struct.pack("=i",delta)
                 text[src:src+4] = bytes
             elif type(op) == AbsoluteAddress32:
                 src = ar['offset']
-                dst = labels[op.label]
+                dst = get_addr_for_label(op.label)
                 bytes = struct.pack("=i",dst)
                 text[src:src+4] = bytes
             elif type(op) == AbsoluteAddress64:
                 src = ar['offset']
-                dst = labels[op.label]
+                dst = get_addr_for_label(op.label)
                 bytes = struct.pack("=q",dst)
                 text[src:src+8] = bytes
             else:
                 raise NotImplementedError("Unknown address resolution type: %r" % op)
 
-        print "text(post-resolve): %r" % text
         return str(text)
 

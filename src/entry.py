@@ -9,7 +9,7 @@ import asmhelper
 import syntax
 import semantics
 
-def _hexdump(src, length=8):
+def _hexdump(src, length=16):
     result = []
     digits = 4 if isinstance(src, unicode) else 2
     for i in xrange(0, len(src), length):
@@ -60,8 +60,11 @@ if __name__ == '__main__':
     for d in data_entries:
         linker.add_data(d)
     
-    print "Data Length: %d" % linker.get_data_len()
+    data_len = linker.get_data_len()
+    data_base = asmhelper.alloc_memory(data_len)
+    linker.set_data_address(data_base)
     
+    print "Data len: %d, base address: 0x%016x" % (data_len,data_base)
     
     text = linker.get_text()
     
@@ -78,14 +81,14 @@ if __name__ == '__main__':
     print "----"
 
     
-    print "text: %r" % text
+    #print "text: %r" % text
     
     print "hexdump(text): ----"
     print _hexdump(text)
     print "----"
     
-    #ret = asmhelper.run_memory(text)
-    #print "ret: ", ret
+    ret = asmhelper.run_memory(text)
+    print "ret: ", ret
     
     print "Done"
 

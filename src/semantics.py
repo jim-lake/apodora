@@ -186,7 +186,7 @@ class SemanticList(object):
         self._asm.add_label(cookie.label)
     
     def _malloc(self,size):
-        return self._asm.call_c_function('_malloc',size)
+        return self._asm.call_c_function('debug_malloc',size)
     
     def _call(self,label):
         self._asm.CALL_REL32(label)

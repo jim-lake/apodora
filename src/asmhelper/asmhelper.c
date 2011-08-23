@@ -11,7 +11,8 @@
 
 const size_t PAGE_SIZE = 4096;
 
-static PyObject *
+static PyObject *alloc_memory(PyObject *self,PyObject *args);
+static PyObject *write_memory(PyObject *self,PyObject *args);
 static PyObject *run_memory(PyObject *self,PyObject *args);
 static PyObject *get_symbol_address(PyObject *self,PyObject *args);
 PyMODINIT_FUNC initasmhelper(void);
@@ -31,7 +32,7 @@ static PyObject *alloc_memory(PyObject *self,PyObject *args)
     if( once )
     {
         once = false;
-        memset(pointers,0,sizeof(pointers));
+        memset(g_pointers,0,sizeof(g_pointers));
     }
     size_t len = 0;
     if( !PyArg_ParseTuple(args,"k",&len) )
@@ -41,8 +42,8 @@ static PyObject *alloc_memory(PyObject *self,PyObject *args)
     printf("valloc(%ld)\n",alloc_size);
     void *p = valloc(alloc_size);
     g_pointers[g_num_pointers++] = p;
-    printf("Return address: 0x%016lx\n",ret);
-    PyObject *obj = PyInt_FromSize_t(p);
+    printf("Return address: 0x%016lx\n",(unsigned long)p);
+    PyObject *obj = PyInt_FromSize_t((size_t)p);
 	return obj;
 }
 
@@ -57,7 +58,7 @@ static PyObject *write_memory(PyObject *self,PyObject *args)
     
     void *p = (void *)pointer_long;
 
-    printf("Write data to 0x%016lx, len: %d\n",p,len);
+    printf("Write data to 0x%016lx, len: %d\n",(unsigned long)p,len);
     memcpy(p,pdata_block,len);
     
     Py_INCREF(Py_None);
@@ -77,6 +78,7 @@ static PyObject *run_memory(PyObject *self,PyObject *args)
     void *pexec_block = valloc(exec_size);
 	memcpy(pexec_block,pasm_block,len);
     mprotect(pexec_block,exec_size,PROT_READ|PROT_EXEC|PROT_WRITE);
+    printf("pexec_block: %016lx\n",(unsigned long)pexec_block);
 
     // Here's where we run something
     user_func_t pfunc = (user_func_t)pexec_block;
@@ -106,14 +108,18 @@ static PyObject *get_symbol_address(PyObject *self,PyObject *args)
 	if( !PyArg_ParseTuple(args,"s",&symbol_name) )
 		return NULL;
 
+    printf("get_symbol_address(%s)\n",symbol_name);
 	void *symbol_addr = dlsym(RTLD_DEFAULT,symbol_name);
+    printf("symbol_addr: %016lx\n",(unsigned long)symbol_addr);
 	if( symbol_addr == NULL )
     {
+        printf("Symbol not found!\n");
 		Py_INCREF(Py_None);
         return Py_None;
 	}
-
-	return Py_BuildValue("K",(unsigned long)symbol_addr);
+	//return Py_BuildValue("K",(unsigned long)symbol_addr);
+    PyObject *obj = PyInt_FromSize_t((size_t)symbol_addr);
+	return obj;
 }
 
 static PyMethodDef asmhelper_methods[] = 
