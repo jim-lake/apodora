@@ -144,8 +144,6 @@ def _make_rex_modrm(rm=None,reg=None,offset=None,w=True,extension=0):
     w = 1 if w else 0
     rm_high = 1 if rm & 0x8 else 0
     reg_high = 1 if reg & 0x8 else 0
-    if call:
-        reg = 0x2
     print "rm=%x,reg=%x,modrm=%x" % (rm,reg,modrm)
     rex = 0x40 | w << 3 | rm_high << 2 | reg_high
     modrm = modrm | (reg & 0x7) << 3 | (rm & 0x7)
