@@ -58,17 +58,39 @@ Where things go:
 - Inline intrinsics implemented in the SemanticList as functions, available as static functions on __intrinsic__
 - Functional intrinsics implemented in lib/__compiler__.py, available as static functions on __compiler__
 
+-----------
+
+Internal compiler structures
+- Everything is 64bit on x64
+- C-style syntax shown as illustration
 
 ------------
 
 Layout Objects
-- Size of everything in x64 is 64bit
 
-size_t size
-name_type_hash last_add
-pointer prev_layout
-pointer add_list
+struct layout_t
+{
+  size_t size;
+  name_type_hash last_add_hash;
+  pointer prev_layout;
+  pointer add_list;
+}
 
+------------
 
+Python Objects
+
+union prop_t
+{
+  int64 v_int;
+  double v_float;
+  pointer obj;
+}
+
+struct py_obj_t
+{
+  pointer layout;
+  prop_t properties[0];
+}
 
 

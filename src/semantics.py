@@ -72,6 +72,7 @@ class SemanticList(object):
     def module_start(self):
         module_start_label = self._module.name + ':__start__'
         self._function_prefix(module_start_label)
+        temp = self._create_object()
 
     def module_end(self):
         self._function_cleanup()
@@ -98,6 +99,9 @@ class SemanticList(object):
         temp = self._malloc(LAYOUT_OBJECT_SIZE)
         self._memset(temp,0,LAYOUT_OBJECT_SIZE)
         return temp
+
+    def _create_object(self):
+        pass
 
     def _memset(self,dest,value,size):
         temp = self._asm.MOV_REG_IMM(value)
