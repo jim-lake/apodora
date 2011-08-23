@@ -61,22 +61,31 @@ Where things go:
 -----------
 
 Internal compiler structures
-- Everything is 64bit on x64
+- Types are 8bit
+- Everything else is 64bit on x64
 - C-style syntax shown as illustration
 
-------------
+-----
 
 Layout Objects
 
 struct layout_t
 {
   size_t size;
-  name_type_hash last_add_hash;
-  pointer prev_layout;
-  pointer add_list;
+  name_hash last_add_name;
+  type last_add_type;
+  byte unused[7];
+  layout_t* prev_layout;
+  add_property_t* add_list;
 }
 
-------------
+struct add_property_t
+{
+  name_type_hash added_name_type;
+  layout_t* next_layout;
+}
+
+-----
 
 Python Objects
 
@@ -89,8 +98,8 @@ union prop_t
 
 struct py_obj_t
 {
-  pointer layout;
+  layout_t* layout;
   prop_t properties[0];
 }
 
-
+-----

@@ -6,6 +6,9 @@ import asmhelper
 INT32_MAX = pow(2,31) - 1
 INT32_MIN = -pow(2,31)
 
+UINT32_MAX = pow(2,32) - 1
+UINT32_MIN = 0
+
 def _hexdump(src, length=16):
     result = []
     digits = 4 if isinstance(src, unicode) else 2
@@ -137,17 +140,17 @@ def _make_rex_modrm(rm=None,reg=None,offset=None,w=True,extension=0):
     elif abs(offset) < 128:
         modrm = 0x40
     else:
-        raise NotImplementedError("Only support 64bit operation")
+        raise NotImplementedError("Unsupported offset")
     
     rm = rm.bitmask if rm else 0
     reg = reg.bitmask if reg else extension
     w = 1 if w else 0
     rm_high = 1 if rm & 0x8 else 0
     reg_high = 1 if reg & 0x8 else 0
-    print "rm=%x,reg=%x,modrm=%x" % (rm,reg,modrm)
+    #print "rm=%x,reg=%x,modrm=%x" % (rm,reg,modrm)
     rex = 0x40 | w << 3 | rm_high << 2 | reg_high
     modrm = modrm | (reg & 0x7) << 3 | (rm & 0x7)
-    print "rex=%x,modrm=%x" % (rex,modrm)
+    #print "rex=%x,modrm=%x" % (rex,modrm)
     rex = struct.pack("=B",rex)
     modrm = struct.pack("=B",modrm)
     if not w and not reg_high and not rm_high:
@@ -203,7 +206,7 @@ class Assembler(object):
         print "CALL_REG(%s)" % reg
         rex,modrm = _make_rex_modrm(rm=reg,w=False,extension=2)
         self.ops.append(rex + '\xFF' + modrm)
-        print "OPCODE: %x,%x,%x" % (ord(rex if rex else '\x00'),ord('\xff'),ord(modrm))
+        #print "OPCODE: %x,%x,%x" % (ord(rex if rex else '\x00'),ord('\xff'),ord(modrm))
 
     def CALL_REL32(self,label):
         print "CALL_REL32(%s)" % label
@@ -283,6 +286,30 @@ class Assembler(object):
         print "MOV_REG_REG(dest=%s,src=%s)" % (dest,src)
         rex,modrm = _make_rex_modrm(rm=dest,reg=src)
         self.ops.append(rex + '\x89' + modrm)
+        
+    def _add_modrm_op(self,opcode,rm=None,reg=None,imm=None,offset=None,extension=0,w=True):
+        rex,modrm = _make_rex_modrm(rm=rm,reg=reg,extension=extension,offset=offset)
+        offset_bytes = ''
+        imm_bytes = ''
+        if offset is None or offset == 0:
+            pass
+        elif abs(offset) < 127:
+            offset_bytes = struct.pack("=b",offset)
+        else:
+            raise NotImplementedError("Unsupported offset")
+        if imm is None:
+            pass
+        elif abs(imm) < INT32_MAX:
+            imm_bytes = struct.pack("=i",imm)
+        else:
+            raise NotImplementedError("Unsupported immediate")
+        op = rex + chr(opcode) + modrm + offset_bytes + imm_bytes
+        #print "_add_modrm_op: op=%r" % op
+        self.ops.append(op)
+
+    def MOV_MEM_IMM(self,dest,imm,offset=0):
+        print "MOV_MEM_IMM(dest=%s,imm=%s,offset=%d)" % (dest,imm,offset)
+        self._add_modrm_op(0xc7,rm=dest,imm=imm,offset=offset,extension=0)
 
     def XOR_RAX_RAX(self):
         print "XOR_RAX_RAX()"

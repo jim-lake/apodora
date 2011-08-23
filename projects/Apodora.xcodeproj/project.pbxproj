@@ -14,12 +14,15 @@
 		2D5B7AFF13F0C83F00F57CF8 /* test1.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = test1.py; path = ../tests/test1.py; sourceTree = "<group>"; };
 		2D5B7B0013F0C97100F57CF8 /* mro.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = mro.py; path = ../tests/mro.py; sourceTree = "<group>"; };
 		2D5B7B0513F0DBC700F57CF8 /* getattr.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = getattr.py; path = ../tests/getattr.py; sourceTree = "<group>"; };
+		2DD27A51140464F9007A6A31 /* a.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = a.py; path = ../tests/a.py; sourceTree = "<group>"; };
+		2DD27A52140464F9007A6A31 /* b.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = b.py; path = ../tests/b.py; sourceTree = "<group>"; };
+		2DD27A53140464F9007A6A31 /* test2.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = test2.py; path = ../tests/test2.py; sourceTree = "<group>"; };
 		2DF5D43E13F5B2BD000A97E5 /* assembler.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = assembler.py; path = ../src/assembler.py; sourceTree = "<group>"; };
 		2DF5D45613F6D9D1000A97E5 /* setup.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = setup.py; path = ../setup.py; sourceTree = "<group>"; };
 		2DF5D45713F6DA61000A97E5 /* asmhelper.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = asmhelper.c; path = ../src/asmhelper/asmhelper.c; sourceTree = "<group>"; };
 		2DF5D45813F703AB000A97E5 /* test0.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = test0.py; path = ../tests/test0.py; sourceTree = "<group>"; };
-		2DF5D45E13F75BC4000A97E5 /* compiler.py */ = {isa = PBXFileReference; name = compiler.py; path = ../src/lib/compiler.py; sourceTree = "<group>"; };
-		2DF5D45F13F75D28000A97E5 /* gc.py */ = {isa = PBXFileReference; name = gc.py; path = ../src/lib/gc.py; sourceTree = "<group>"; };
+		2DF5D45E13F75BC4000A97E5 /* compiler.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = compiler.py; path = ../src/lib/compiler.py; sourceTree = "<group>"; };
+		2DF5D45F13F75D28000A97E5 /* gc.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = gc.py; path = ../src/lib/gc.py; sourceTree = "<group>"; };
 		2DF5D46113F77B5F000A97E5 /* README */ = {isa = PBXFileReference; lastKnownFileType = text; name = README; path = ../README; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -51,10 +54,13 @@
 			isa = PBXGroup;
 			children = (
 				2DF5D45813F703AB000A97E5 /* test0.py */,
-				2D5B7B0513F0DBC700F57CF8 /* getattr.py */,
 				2D5B7AFF13F0C83F00F57CF8 /* test1.py */,
+				2DD27A53140464F9007A6A31 /* test2.py */,
+				2D5B7B0513F0DBC700F57CF8 /* getattr.py */,
 				2D5B7B0013F0C97100F57CF8 /* mro.py */,
 				2D4B848613F450BA008184AE /* module_scope.py */,
+				2DD27A51140464F9007A6A31 /* a.py */,
+				2DD27A52140464F9007A6A31 /* b.py */,
 			);
 			name = Tests;
 			sourceTree = "<group>";

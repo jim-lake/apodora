@@ -78,7 +78,7 @@ static PyObject *run_memory(PyObject *self,PyObject *args)
     void *pexec_block = valloc(exec_size);
 	memcpy(pexec_block,pasm_block,len);
     mprotect(pexec_block,exec_size,PROT_READ|PROT_EXEC|PROT_WRITE);
-    printf("pexec_block: %016lx\n",(unsigned long)pexec_block);
+    printf("pexec_block: 0x%016lx 0x%016lx\n",(unsigned long)pexec_block,(unsigned long)pexec_block+len);
 
     // Here's where we run something
     user_func_t pfunc = (user_func_t)pexec_block;

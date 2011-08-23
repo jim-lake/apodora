@@ -32,6 +32,10 @@ if __name__ == '__main__':
     parser.add_argument('file',help='python file to run')
     args = parser.parse_args()
 
+    linker = assembler.Linker()
+    premain = get_premain()
+    linker.add_assembly(premain.get_assembler())
+
     def read_file(name,module_names=None):
         if module_names is None:
             module_names = [name]
@@ -48,9 +52,6 @@ if __name__ == '__main__':
     mod_name = os.path.splitext(os.path.basename(args.file))[0]
     read_file(args.file,['__main__',mod_name])
 
-    linker = assembler.Linker()
-    premain = get_premain()
-    linker.add_assembly(premain.get_assembler())
     sls = syntax.SyntaxVisitor.get_semantic_lists()
     for sl in sls:
         asm = sl.get_assembler()
