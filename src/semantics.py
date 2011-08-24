@@ -151,29 +151,32 @@ class SemanticList(object):
         return hash(name)
     
     def _find_property(self,pobj,prop_name,prop_type):
-        ret = self._asm.MOV_REG_IMM(0)
         hash = self._hash_name(prop_name)
-        hash_reg = self._asm.MOV_REG_IMM(hash)
-        nl_cookie = LabelCookie(_find_property + 'next_layout')
-        done_cookie = LabelCookie(_find_property + 'done')
+        found_prop_cookie = LabelCookie('_find_property:found_prop')
+        done_cookie = LabelCookie('_find_property:done')
+        loop_cookie = LabelCookie('_find_property:start_loop')
         
+        ret = self._asm.MOV_REG_IMM(0)
+        hash_reg = self._asm.MOV_REG_IMM(hash)
         layout_obj = self._load_object_property(pobj,offset=OBJECT_OFFSET['layout'])
         
-        forever_cookie = self._start_forever()
-
+        self._asm.add_label(loop_cookie.label)
         self._asm.CMP_MEM_REG(layout_obj,hash_reg,offset=LAYOUT_OFFSET['last_add'])
-        self._asm.JNZ_REL32(nl_cookie.label)
-        self._asm.MOV_REG_MEM(ret,layout_obj,offset=LAYOUT_OFFSET['size'])
-        self._asm.SUB_REG_IMM(ret,8)
-        self._asm.JMP_REL32(done_cookie.label)
-
-        self._asm.add_label(nl_cookie.label)
+        self._asm.JZ_REL32(found_prop_cookie.label)
+        
         self._asm.MOV_REG_MEM(layout_obj,layout_obj,offset=OBJECT_OFFSET['parent'])
         self._asm.CMP_REG_IMM(layout_obj,0)
-        self._asm.JNE_REL32(done_cookie.label)
-
-        self._end_forever(forever_cookie)
+        self._asm.JNE_REL32(loop_cookie.label)
+        self._asm.JMP_REL32(done_cookie.label)
+        
+        self._asm.add_label(found_prop_cookie.label)
+        self._asm.MOV_REG_MEM(ret,layout_obj,offset=LAYOUT_OFFSET['size'])
+        self._asm.SUB_REG_IMM(ret,8)
+        
         self._asm.add_label(done_cookie.label)
+        self._asm.release_reg(hash_reg)
+        self._asm.release_reg(layout_obj)
+        return ret
     
     def store_global(self,target,source):
         print "Store Global: %s=%s" % (target,source)
