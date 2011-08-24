@@ -21,11 +21,11 @@ TYPE_OBJECT = 3
 LAYOUT_OBJECT_SIZE = 8 * 5
 LAYOUT_OFFSET = {
     'size': 0,
-    'last_add_name': 8,
-    'last_add_type': 16,
-    'unused0': 17,
-    'unused6': 23,
-    'prev_layout': 24,
+    'parent': 8,
+    'last_add_name': 16,
+    'last_add_type': 24,
+    'unused0': 25,
+    'unused6': 31,
     'add_list': 32,
 }
 
@@ -141,19 +141,51 @@ class SemanticList(object):
     def _get_module_pointer(self):
         return self._load_pointer(self._module_object_label)
     
-    def _find_property(self,object,target):
+    def _get_type(self,value):
+        if type(value) == int:
+            return TYPE_INT
+        else:
+            raise NotImplementedError("Type(%s) of %s not supported" % (type(value),value))
+    
+    def _hash_name(self,name):
+        return hash(name)
+    
+    def _find_property(self,pobj,target,type):
         ret = self._asm.MOV_REG_IMM(0)
+        target_hash = self._hash_name(target)
+        hash_reg = self._asm.MOV_REG_IMM(target_hash)
+        nl_cookie = LabelCookie(_find_property + 'next_layout')
+        done_cookie = LabelCookie(_find_property + 'done')
         
+        layout_obj = self._load_object_property(pobj,offset=OBJECT_OFFSET['layout'])
+        
+        forever_cookie = self._start_forever()
+
+        self._asm.CMP_MEM_REG(layout_obj,hash_reg,offset=LAYOUT_OFFSET['last_add'])
+        self._asm.JNZ_REL32(nl_cookie.label)
+        self._asm.MOV_REG_MEM(ret,layout_obj,offset=LAYOUT_OFFSET['size'])
+        self._asm.SUB_REG_IMM(ret,8)
+        self._asm.JMP_REL32(done_cookie.label)
+
+        self._asm.add_label(nl_cookie.label)
+        self._asm.MOV_REG_MEM(layout_obj,layout_obj,offset=OBJECT_OFFSET['parent'])
+        self._asm.CMP_REG_IMM(layout_obj,0)
+        self._asm.JNE_REL32(done_cookie.label)
+
+        self._end_forever(forever_cookie)
+        self._asm.add_label(done_cookie.label)
     
     def store_global(self,target,source):
         print "Store Global: %s=%s" % (target,source)
         pobj = self._get_module_pointer()
-        target_name_hash,target_type = self._get_hash_and_type(target,source)
-        find_cookie = self._find_property(pobj,target)
+        type = self._get_type(source)
+        find_cookie = self._find_property(pobj,target,type)
         self.start_if(find_cookie)
-        cookie = self._
+        #cookie = self._add_property(pobj,target)
         self.else_if(find_cookie)
         self.end_if(find_cookie)
+        self._asm.release_reg(type)
+        self._asm.release_reg(pobj)
     
     def store(self,target,source):
         if target in self._globals:

@@ -1,40 +1,36 @@
 
 # Compiler Support
 
-CLASS_LAYOUT_SIZE = 8 + 8
+LAYOUT_OBJECT_SIZE = 8*5
+LAYOUT_OFFSET_SIZE = 0
+LAYOUT_OFFSET_PARENT = 8
+LAYOUT_OFFSET_LAST_ADD_HASH = 16
 
 
+EMPTY_OBJECT_SIZE = 8
+OBJECT_OFFSET_LAYOUT = 0
 
 @__intrinsic__.staticfunction
-def add_property_to_object(object,name_type_hash,value):
-    class_layout = __intrinsic__.load_object_offset(object,0)
-    object_size = __intrinsic__.load_object_offset(class_layout,0)
-    object_adds = __intrinsic__.load_object_offset(class_layout,8)
-    num_adds = __intrinsic__.load_object_offset(object_adds,0)
-    num = 0
-    next_class = None
-    while num < num_adds:
-        add = __intrinsic__.load_object_offset(object_adds,num * 16 + 8)
-        if add == name_type_hash:
-            next_class = __intrinsic__.load_object_offset(object_adds * 16 + 16)
-            break
-    
-    if next_class is None:
-        next_class_adds = __intrinsic__.malloc(8)
-        __intrinsic__.write_object_offset(next_class_adds,0,0)
+def create_layout():
+    temp = __intrinsic__.malloc(LAYOUT_OBJECT_SIZE)
+    __intrinsic__.memset(temp,0,LAYOUT_OBJECT_SIZE)
+    __intrinsic__.write_object64(temp,LAYOUT_OFFSET_SIZE,EMPTY_OBJECT_SIZE)
+    return temp
 
-        next_class = __intrinsic__.malloc(CLASS_LAYOUT_SIZE)
-        __intrinsic__.write_object_offset(next_class,0,object_size + 8)
-        __intrinsic__.write_object_offset(next_class,8,next_class_adds)
-        
-        new_adds = __intrinsic__.malloc(num_adds * 16 + 8 + 16)
-        __intrinsic__.memcpy(new_adds,object_adds,num_adds * 16 + 8)
-        __intrinsic__.write_object_offset(new_adds,0,new_adds + 1)
-        __intrinsic__.write_object_offset(new_adds,num_adds * 16 + 8,name_type_hash)
-        __intrinsic__.write_object_offset(new_adds,num_adds * 16 + 8 + 8,next_class)
-        
-    new_object = __intrinsic__.malloc(object_size + 8)
-    __intrinsic__.memcpy(new_object,object,object_size)
-    __intrinsic__.write_object_offset(new_object,0,next_class)
-    __intrinsic__.write_object_offset(new_object,object_size,value)
-    return new_object
+@__intrinsic__.staticfunction
+def create_object():
+    temp = __intrinsic__.malloc(EMPTY_OBJECT_SIZE)
+    __intrinsic__.write_object64(temp,OBJECT_OFFSET_LAYOUT,EMPTY_OBJECT_SIZE)
+
+@__intrinsic__.staticfunction
+def find_property(obj,name_hash,type):
+    layout = __intrinsic__.load_object64(obj,OBJECT_OFFSET_LAYOUT)
+    while True:
+        last_add_hash = __intrinsic__.load_object64(obj,LAYOUT_OFFSET_LAST_ADD_HASH)
+        if last_add_hash == name_hash:
+            offset = __intrinsic__.load_object64(obj,LAYOUT_OBJECT_SIZE)
+            return offset - 8
+        layout = __intrinsic__.load_object64(obj,LAYOUT_OFFSET_PARENT)
+        if layout == 0
+            return layout
+
