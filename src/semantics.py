@@ -150,10 +150,10 @@ class SemanticList(object):
     def _hash_name(self,name):
         return hash(name)
     
-    def _find_property(self,pobj,target,type):
+    def _find_property(self,pobj,prop_name,prop_type):
         ret = self._asm.MOV_REG_IMM(0)
-        target_hash = self._hash_name(target)
-        hash_reg = self._asm.MOV_REG_IMM(target_hash)
+        hash = self._hash_name(prop_name)
+        hash_reg = self._asm.MOV_REG_IMM(hash)
         nl_cookie = LabelCookie(_find_property + 'next_layout')
         done_cookie = LabelCookie(_find_property + 'done')
         

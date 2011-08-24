@@ -21,16 +21,17 @@ def create_layout():
 def create_object():
     temp = __intrinsic__.malloc(EMPTY_OBJECT_SIZE)
     __intrinsic__.write_object64(temp,OBJECT_OFFSET_LAYOUT,EMPTY_OBJECT_SIZE)
+    return temp
 
 @__intrinsic__.staticfunction
 def find_property(obj,name_hash,type):
     layout = __intrinsic__.load_object64(obj,OBJECT_OFFSET_LAYOUT)
     while True:
-        last_add_hash = __intrinsic__.load_object64(obj,LAYOUT_OFFSET_LAST_ADD_HASH)
+        last_add_hash = __intrinsic__.load_object64(layout,LAYOUT_OFFSET_LAST_ADD_HASH)
         if last_add_hash == name_hash:
-            offset = __intrinsic__.load_object64(obj,LAYOUT_OBJECT_SIZE)
+            offset = __intrinsic__.load_object64(layout,LAYOUT_OFFSET_SIZE)
             return offset - 8
-        layout = __intrinsic__.load_object64(obj,LAYOUT_OFFSET_PARENT)
+        layout = __intrinsic__.load_object64(layout,LAYOUT_OFFSET_PARENT)
         if layout == 0
             return layout
 
