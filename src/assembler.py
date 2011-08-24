@@ -9,6 +9,12 @@ INT32_MIN = -pow(2,31)
 UINT32_MAX = pow(2,32) - 1
 UINT32_MIN = 0
 
+INT64_MAX = pow(2,63) - 1
+INT64_MIN = -pow(2,63)
+
+UINT64_MAX = pow(2,64) - 1
+UINT64_MIN = 0
+
 def _hexdump(src, length=16):
     result = []
     digits = 4 if isinstance(src, unicode) else 2
@@ -227,22 +233,7 @@ class Assembler(object):
             raise NotImplementedError("Unsupported immediate: %d" % imm)
 
         
-    def MOV_REG_IMM(self,arg1,arg2=None):
-        if arg2 is None:
-            reg = self._regs.allocate_reg()
-            imm = arg1
-        else:
-            reg = arg1
-            imm = arg2
-        print "MOV_REG_IMM(%s,%s)" % (reg,imm)
-        rex,modrm = _make_rex_modrm(rm=reg)
-        if abs(imm) < INT32_MAX:
-            imm_bytes = struct.pack("=i",imm)
-            self.ops.append(rex + '\xc7' + modrm + imm_bytes)
-            print "OPCODE: %x,%x,%x" % (ord(rex),ord('\xc7'),ord(modrm))
-        else:
-            raise NotImplementedError("Unsuppported immediate: %d" % imm)
-        return reg
+
 
     def MOV_MEM_REG(self,dest,src,offset=0):
         print "MOV_MEM_REG(dest=%s,src=%s,offset=%d)" % (dest,src,offset)
@@ -307,9 +298,60 @@ class Assembler(object):
         #print "_add_modrm_op: op=%r" % op
         self.ops.append(op)
 
+    def _add_reg_op(self,opcode,reg=None,imm=None,w=True):
+        rex,opcode = _make_rex_opcode(opcode,reg)
+        imm_bytes = ''
+        if imm is None:
+            pass
+        elif abs(imm) < INT32_MAX:
+            raise NotImplementedError("Unsupported immediate")
+        elif abs(imm) < INT64_MAX:
+            imm_bytes = struct.pack("=q",imm)
+        elif imm > 0 and imm < UINT64_MAX:
+            imm_bytes = struct.pack("=Q",imm)
+        op = rex + opcode + imm_bytes
+        self.ops.append(op)
+
+    def MOV_REG_MEM(self,arg1,arg2=None,offset=0):
+        if arg2 == None:
+            dest = self._regs.allocate_reg()
+            src = arg1
+        else:
+            dest = arg1
+            src = arg2
+        print "MOV_REG_MEM(dest=%s,imm=%s,offset=%d)" % (dest,src,offset)
+        self._add_modrm_op(0x8b,reg=dest,rm=src,offset=offset)
+        return dest
+
     def MOV_MEM_IMM(self,dest,imm,offset=0):
         print "MOV_MEM_IMM(dest=%s,imm=%s,offset=%d)" % (dest,imm,offset)
         self._add_modrm_op(0xc7,rm=dest,imm=imm,offset=offset,extension=0)
+
+    def MOV_REG_IMM(self,arg1,arg2=None):
+        if arg2 is None:
+            reg = self._regs.allocate_reg()
+            imm = arg1
+        else:
+            reg = arg1
+            imm = arg2
+            
+        if abs(imm) > INT32_MAX:
+            self._add_reg_op(0xb8,reg=reg,imm=imm)
+        else:
+            self._add_modrm_op(0xc7,rm=reg,imm=imm,extension=0)
+        return reg
+
+    def CMP_REG_MEM(self,reg,rm,offset=0):
+        print "CMP_REG_MEM(reg=%s,rm=%s,offset=%d)" % (reg,rm,offset)
+        self._add_modrm_op(0x3b,reg=reg,rm=rm,offset=offset)
+
+    def CMP_REG_IMM(self,reg,imm):
+        print "CMP_REG_IMM(reg=%s,imm=%d)" % (reg,imm)
+        self._add_modrm_op(0x83,rm=reg,imm=imm,extension=7)
+        
+    def SUB_REG_IMM(self,reg,imm):
+        print "SUB_REG_IMM(reg=%s,imm=%d)" % (reg,imm)
+        self._add_modrm_op(0x83,rm=reg,imm=imm,extension=5)
 
     def XOR_RAX_RAX(self):
         print "XOR_RAX_RAX()"
@@ -345,9 +387,17 @@ class Assembler(object):
         print "JNE_REL32(%s)" % label
         self.ops.append('\x0f\x85')
         self.ops.append(RelativeAddress32(label))
-    
-    def CMP_REG_REG(self,reg1,reg2):
-        raise NotImplementedError("Unsupported instruction type")
+
+    def JZ_REL32(self,label):
+        print "JZ_REL32(%s)" % label
+        self.ops.append('\x0f\x84')
+        self.ops.append(RelativeAddress32(label))
+
+    def JMP_REL32(self,label):
+        print "JMP_REL32(%s)" % label
+        self.ops.append('\xe9')
+        self.ops.append(RelativeAddress32(label))
+
     
 class Linker(object):
     def __init__(self):
