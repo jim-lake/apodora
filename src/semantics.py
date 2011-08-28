@@ -115,8 +115,9 @@ class SemanticList(object):
 
     def _create_object(self):
         temp = self._malloc(EMPTY_OBJECT_SIZE)
-        self._store_object_property(temp,'__intrinsic__:layout_root',
-                                  offset=OBJECT_OFFSET['layout'])
+        root_layout = self._load_pointer('__intrinsic__:layout_root')
+        self._store_object_property(temp,root_layout,
+                                    offset=OBJECT_OFFSET['layout'])
         return temp
 
     def _memset(self,dest,value,size):
@@ -140,8 +141,12 @@ class SemanticList(object):
             temp = self._asm.MOV_REG_ABS64(value)
             self._asm.MOV_MEM_REG(object,temp,offset)
             self._asm.release_reg(temp)
-        else:
+        elif type(value) == int:
             self._asm.MOV_MEM_IMM(object,value,offset)
+        elif type(value) == assembler.Register:
+            self._asm.MOV_MEM_REG(object,value,offset)
+        else:
+            raise NotImplementedError("Unsupported store object property value type: %r" % value)
     
     def _load_object_property(self,object,offset):
         return self._asm.MOV_REG_MEM(object,offset=offset)

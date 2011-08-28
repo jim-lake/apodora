@@ -97,8 +97,9 @@ long mytest_function(void)
 }
 void *debug_malloc(size_t s)
 {
-    printf("debug_malloc(%ld)\n",s);
-    return malloc(s);
+    void *p = malloc(s);
+    printf("debug_malloc(%ld) = 0x%016lx\n",s,(unsigned long)p);
+    return p;
 }
 
 

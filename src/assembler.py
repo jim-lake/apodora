@@ -3,6 +3,8 @@ import struct
 
 import asmhelper
 
+INT8_MAX = pow(2,7) - 1
+
 INT32_MAX = pow(2,31) - 1
 INT32_MIN = -pow(2,31)
 
@@ -232,9 +234,6 @@ class Assembler(object):
         else:
             raise NotImplementedError("Unsupported immediate: %d" % imm)
 
-        
-
-
     def MOV_MEM_REG(self,dest,src,offset=0):
         print "MOV_MEM_REG(dest=%s,src=%s,offset=%d)" % (dest,src,offset)
         rex,modrm = _make_rex_modrm(rm=dest,offset=offset,reg=src)
@@ -277,8 +276,8 @@ class Assembler(object):
         print "MOV_REG_REG(dest=%s,src=%s)" % (dest,src)
         rex,modrm = _make_rex_modrm(rm=dest,reg=src)
         self.ops.append(rex + '\x89' + modrm)
-        
-    def _add_modrm_op(self,opcode,rm=None,reg=None,imm=None,offset=None,extension=0,w=True):
+    
+    def _add_modrm_op(self,opcode,rm=None,reg=None,imm8=None,imm32=None,offset=None,extension=0,w=True):
         rex,modrm = _make_rex_modrm(rm=rm,reg=reg,extension=extension,offset=offset)
         offset_bytes = ''
         imm_bytes = ''
@@ -288,28 +287,31 @@ class Assembler(object):
             offset_bytes = struct.pack("=b",offset)
         else:
             raise NotImplementedError("Unsupported offset")
-        if imm is None:
-            pass
-        elif abs(imm) < INT32_MAX:
-            imm_bytes = struct.pack("=i",imm)
-        else:
-            raise NotImplementedError("Unsupported immediate")
+        
+        if imm8 is not None:
+            imm_bytes = struct.pack("=b",imm8)
+        elif imm32 is not None:
+            imm_bytes = struct.pack("=i",imm32)
         op = rex + chr(opcode) + modrm + offset_bytes + imm_bytes
-        #print "_add_modrm_op: op=%r" % op
+        print "_add_modrm_op: op=%r" % op
         self.ops.append(op)
 
-    def _add_reg_op(self,opcode,reg=None,imm=None,w=True):
+    def _add_reg_op(self,opcode,reg=None,imm8=None,imm32=None,imm64=None,w=True):
         rex,opcode = _make_rex_opcode(opcode,reg)
         imm_bytes = ''
-        if imm is None:
-            pass
-        elif abs(imm) < INT32_MAX:
+        if imm8:
+            imm_bytes = struct.pack("=b",imm8)
+        elif imm32:
             raise NotImplementedError("Unsupported immediate")
-        elif abs(imm) < INT64_MAX:
-            imm_bytes = struct.pack("=q",imm)
-        elif imm > 0 and imm < UINT64_MAX:
-            imm_bytes = struct.pack("=Q",imm)
+        elif imm64:
+            if abs(imm64) < INT64_MAX:
+                imm_bytes = struct.pack("=q",imm64)
+            elif imm64 > 0 and imm64 < UINT64_MAX:
+                imm_bytes = struct.pack("=Q",imm64)
+            else:
+                raise NotImplementedError("Unsupported immediate: %d" % imm64)
         op = rex + opcode + imm_bytes
+        #print "_add_reg_op: op=%r" % op
         self.ops.append(op)
 
     def MOV_REG_MEM(self,arg1,arg2=None,offset=0):
@@ -319,13 +321,13 @@ class Assembler(object):
         else:
             dest = arg1
             src = arg2
-        print "MOV_REG_MEM(dest=%s,imm=%s,offset=%d)" % (dest,src,offset)
+        print "MOV_REG_MEM(dest=%s,src=%s,offset=%d)" % (dest,src,offset)
         self._add_modrm_op(0x8b,reg=dest,rm=src,offset=offset)
         return dest
 
     def MOV_MEM_IMM(self,dest,imm,offset=0):
         print "MOV_MEM_IMM(dest=%s,imm=%s,offset=%d)" % (dest,imm,offset)
-        self._add_modrm_op(0xc7,rm=dest,imm=imm,offset=offset,extension=0)
+        self._add_modrm_op(0xc7,rm=dest,imm32=imm,offset=offset,extension=0)
 
     def MOV_REG_IMM(self,arg1,arg2=None):
         if arg2 is None:
@@ -336,9 +338,11 @@ class Assembler(object):
             imm = arg2
             
         if abs(imm) > INT32_MAX:
-            self._add_reg_op(0xb8,reg=reg,imm=imm)
+            print "MOV_REG_IMM(reg=%s,imm64=%d)" % (reg,imm)
+            self._add_reg_op(0xb8,reg=reg,imm64=imm)
         else:
-            self._add_modrm_op(0xc7,rm=reg,imm=imm,extension=0)
+            print "MOV_REG_IMM(reg=%s,imm32=%d)" % (reg,imm)
+            self._add_modrm_op(0xc7,rm=reg,imm32=imm,extension=0)
         return reg
 
     def CMP_REG_MEM(self,reg,rm,offset=0):
@@ -346,12 +350,15 @@ class Assembler(object):
         self._add_modrm_op(0x3b,reg=reg,rm=rm,offset=offset)
 
     def CMP_REG_IMM(self,reg,imm):
-        print "CMP_REG_IMM(reg=%s,imm=%d)" % (reg,imm)
-        self._add_modrm_op(0x83,rm=reg,imm=imm,extension=7)
+        if abs(imm) < INT8_MAX:
+            print "CMP_REG_IMM(reg=%s,imm8=%d)" % (reg,imm)
+            self._add_modrm_op(0x83,rm=reg,imm8=imm,extension=7)
+        else:
+            raise NotImplementedError("Immediate not supported: %d" % imm)
         
     def SUB_REG_IMM(self,reg,imm):
         print "SUB_REG_IMM(reg=%s,imm=%d)" % (reg,imm)
-        self._add_modrm_op(0x83,rm=reg,imm=imm,extension=5)
+        self._add_modrm_op(0x83,rm=reg,imm8=imm,extension=5)
 
     def XOR_RAX_RAX(self):
         print "XOR_RAX_RAX()"
