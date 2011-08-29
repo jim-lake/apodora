@@ -8,6 +8,7 @@ import assembler
 import asmhelper
 import syntax
 import semantics
+import ssa
 
 def _hexdump(src, length=16):
     result = []
@@ -33,30 +34,46 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     linker = assembler.Linker()
-    premain = get_premain()
-    linker.add_assembly(premain.get_assembler())
+    #premain = get_premain()
+    #linker.add_assembly(premain.get_assembler())
 
-    def read_file(name,module_names=None):
-        if module_names is None:
-            module_names = [name]
+    def read_file(name,module_name):
         print "Opening file: %s" % name
         file = open(name)
         source = file.read()
         root_node = ast.parse(source,name)
-        print "Got root_node: %r" % root_node
         print "Dump: %s" % ast.dump(root_node)
-        sv = syntax.SyntaxVisitor(module_names=module_names)
+        sv = syntax.SyntaxVisitor(module_name,module_scope=True)
         sv.visit(root_node)
+        return sv
 
     #read_file('lib/compiler.py',['__compiler__'])
     mod_name = os.path.splitext(os.path.basename(args.file))[0]
-    read_file(args.file,['__main__',mod_name])
+    sv = read_file(args.file,'__main__')
 
-    sls = syntax.SyntaxVisitor.get_semantic_lists()
-    for sl in sls:
-        asm = sl.get_assembler()
+    sem_modules = [ semantics.get_premain() ]
+    sem_modules.extend( sv.module_list )
+
+    print "sem_modules: %s" % sem_modules
+
+    ssa_lists = []
+    for module in sem_modules:
+        print "sem module: %s" % module
+        ssa_list = semantics.sem_to_ssa(module)
+        ssa_lists.append(ssa_list)
+        
+        #asm = sl.get_assembler()
+        #linker.add_assembly(asm)
+
+    for ssa_list in ssa_lists:
+        print "ssa_list ---------"
+        for op in ssa_list:
+            print "op: %s" % op
+        print "--------- ssa_list"
+
+        asm = ssa.ssa_to_asm(ssa_list)
         linker.add_assembly(asm)
-    
+
     data_entries = assembler.DataSegment.get_data()
     for d in data_entries:
         linker.add_data(d)
@@ -68,21 +85,6 @@ if __name__ == '__main__':
     print "Data len: %d, base address: 0x%016x" % (data_len,data_base)
     
     text = linker.get_text()
-    
-    print "Static Functions: ----"
-    sfmap = syntax.SyntaxVisitor.get_static_functions()
-    for k,v in sfmap.iteritems():
-        print "  %s = %s" % (k,v)
-    print "----"
-
-    print "Modules: ----"
-    module_map = syntax.SyntaxVisitor.get_modules()
-    for k,v in module_map.iteritems():
-        print "  %s = %s" % (k,v)
-    print "----"
-
-    
-    #print "text: %r" % text
     
     print "hexdump(text): ----"
     print _hexdump(text)

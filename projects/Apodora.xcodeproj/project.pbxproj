@@ -17,6 +17,7 @@
 		2DD27A51140464F9007A6A31 /* a.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = a.py; path = ../tests/a.py; sourceTree = "<group>"; };
 		2DD27A52140464F9007A6A31 /* b.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = b.py; path = ../tests/b.py; sourceTree = "<group>"; };
 		2DD27A53140464F9007A6A31 /* test2.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = test2.py; path = ../tests/test2.py; sourceTree = "<group>"; };
+		2DEEEC9A140C33FA00A5C99D /* ssa.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = ssa.py; path = ../src/ssa.py; sourceTree = "<group>"; };
 		2DF5D43E13F5B2BD000A97E5 /* assembler.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = assembler.py; path = ../src/assembler.py; sourceTree = "<group>"; };
 		2DF5D45613F6D9D1000A97E5 /* setup.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; name = setup.py; path = ../setup.py; sourceTree = "<group>"; };
 		2DF5D45713F6DA61000A97E5 /* asmhelper.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = asmhelper.c; path = ../src/asmhelper/asmhelper.c; sourceTree = "<group>"; };
@@ -45,6 +46,7 @@
 				2D5B7AFE13F0C83500F57CF8 /* entry.py */,
 				2D4B848B13F98F15008184AE /* syntax.py */,
 				2D4B848D13F98F85008184AE /* semantics.py */,
+				2DEEEC9A140C33FA00A5C99D /* ssa.py */,
 				2DF5D43E13F5B2BD000A97E5 /* assembler.py */,
 			);
 			name = Compiler;

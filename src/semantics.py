@@ -1,5 +1,6 @@
 
 
+import ssa
 import assembler
 
 class SemTemp(object):
@@ -283,6 +284,92 @@ class SemanticList(object):
     def _function_cleanup(self):
         # Restore RBP
         self._asm.POPQ_RBP()
+
+def sem_to_ssa(sem_object):
+    return sem_object.to_ssa_list()
+
+
+def get_premain():
+    ops = []
+    root_layout = Allocate(LAYOUT_OBJECT_SIZE)
+    MemSet()
     
+    ops.append( WritePointer('__intrinsic__:layout_root',root_layout) )
+    ops.append( LoadModule('__main__') )
+    return Module('__premain__',ops)
+
+
+class SemOp(object):
+    def __str__(self):
+        return "%s: %s" % (type(self),self.__dict__)
+
+
+class Allocate(SemOp):
+    def __init__(self,size):
+        self.size = size
     
+    def to_ssa_list(self):
+        return [ssa.CallCFunction('debug_malloc',self.size)]
+
+
+class Module(object):
+    def __init__(self,name,ops):
+        self.name = name
+        self.ops = ops
+
+    def to_ssa_list(self):
+        body = []
+        body.append( ssa.FunctionStart('module_start:' + self.name) )
+        for op in self.ops:
+            body.extend( sem_to_ssa(op) ) 
+        body.append( ssa.FunctionEnd() )
+        return body
+
+class Function(object):
+    def __init__(self,module,name,ops):
+        self.name = module
+        self.name = name
+        self.ops = ops
+
+
+class Store(SemOp):
+    def __init__(self,target,value):
+        self.target = target
+        self.value = value
+
+class StoreGlobal(Store):
+    def to_ssa_list(self):
+        
+
+class StoreLocal(Store):
+    pass
+
+class Load(SemOp):
+    def __init__(self,target,value):
+        self.target = target
+        self.value = value
+
+class LoadLocal(Load):
+    pass
+    
+class LoadGlobal(Load):
+    pass
+    
+class LoadSmart(Load):
+    pass
+
+class Return(SemOp):
+    def __init__(self,value):
+        self.value = value
+
+    def to_ssa_list(self):
+        return [ssa.Return(self.value)]
+
+class LoadModule(SemOp):
+    def __init__(self,module):
+        self.module = module
+    
+    def to_ssa_list(self):
+        return [ssa.CallFunction('module_start:' + self.module)]
+
     

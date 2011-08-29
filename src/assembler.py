@@ -208,6 +208,14 @@ class Assembler(object):
             self.POP_REG(r)
         return ret_reg
     
+    def function_prefix(self,label):
+        self.add_label(label)
+        self.PUSHQ_RBP()
+        self.MOVQ_RBP_RSP()
+    
+    def function_cleanup(self):
+        self.POPQ_RBP()
+    
     # Functions that equate to Intel x64 instructions
 
     def CALL_REG(self,reg):
