@@ -285,16 +285,15 @@ class SemanticList(object):
         # Restore RBP
         self._asm.POPQ_RBP()
 
-def sem_to_ssa(sem_object):
-    return sem_object.to_ssa_list()
-
+def sem_to_ssa(sem_object,ssa_list=None):
+    if ssa_list is None:
+        ssa_list = ssa.SSAList()
+    sem_object.to_ssa(ssa_list)
+    return ssa_list
 
 def get_premain():
     ops = []
-    root_layout = Allocate(LAYOUT_OBJECT_SIZE)
-    MemSet()
-    
-    ops.append( WritePointer('__intrinsic__:layout_root',root_layout) )
+    ops.append( WritePointer('__intrinsic__:layout_root',Allocate(LAYOUT_OBJECT_SIZE)) )
     ops.append( LoadModule('__main__') )
     return Module('__premain__',ops)
 
@@ -303,27 +302,33 @@ class SemOp(object):
     def __str__(self):
         return "%s: %s" % (type(self),self.__dict__)
 
+class WritePointer(SemOp):
+    def __init__(self,label,value):
+        self.label = label
+        self.value = value
+    
+    def to_ssa(self,ssa_list):
+        value = self.value.to_ssa(ssa_list)
+        ssa_list.add(ssa.WritePointer,self.label,value)
 
 class Allocate(SemOp):
     def __init__(self,size):
         self.size = size
     
-    def to_ssa_list(self):
-        return [ssa.CallCFunction('debug_malloc',self.size)]
-
+    def to_ssa(self,ssa_list):
+        addr = ssa_list.add(ssa.CallCFunction,'debug_malloc',self.size)
+        return addr
 
 class Module(object):
     def __init__(self,name,ops):
         self.name = name
         self.ops = ops
 
-    def to_ssa_list(self):
-        body = []
-        body.append( ssa.FunctionStart('module_start:' + self.name) )
+    def to_ssa(self,ssa_list):
+        ssa_list.add(ssa.FunctionStart,'module_start:' + self.name)
         for op in self.ops:
-            body.extend( sem_to_ssa(op) ) 
-        body.append( ssa.FunctionEnd() )
-        return body
+            sem_to_ssa(op,ssa_list)
+        ssa_list.add(ssa.FunctionEnd)
 
 class Function(object):
     def __init__(self,module,name,ops):
@@ -339,7 +344,7 @@ class Store(SemOp):
 
 class StoreGlobal(Store):
     def to_ssa_list(self):
-        
+        pass
 
 class StoreLocal(Store):
     pass
@@ -362,14 +367,14 @@ class Return(SemOp):
     def __init__(self,value):
         self.value = value
 
-    def to_ssa_list(self):
-        return [ssa.Return(self.value)]
+    def to_ssa(self,ssa_list):
+        ssa_list.add(ssa.Return,self.value)
 
 class LoadModule(SemOp):
     def __init__(self,module):
         self.module = module
     
-    def to_ssa_list(self):
-        return [ssa.CallFunction('module_start:' + self.module)]
+    def to_ssa(self,ssa_list):
+        ssa_list.add(ssa.CallFunction,'module_start:' + self.module)
 
     

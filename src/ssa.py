@@ -1,9 +1,27 @@
 
 import assembler
 
+class SSAList(object):
+    def __init__(self):
+        self.ssa_ops = []
+        
+    def add(self,ssa_class,*args,**kwargs):
+        op = ssa_class(*args,**kwargs)
+        self.ssa_ops.append(op)
+        return op.return_value()
+
+    def __iter__(self):
+        return self.ssa_ops.__iter__()
+
 class SSAOp(object):
     def __str__(self):
         return "SSA Op: %s: %s" % (type(self),self.__dict__)
+
+    def return_value(self):
+        return None
+    
+    def to_asm(self,asm):
+        raise NotImplementedError("SSA to ASM not implemented for op type: %s" % type(self))
 
 class FunctionStart(SSAOp):
     def __init__(self,name):
@@ -36,8 +54,19 @@ class CallFunction(SSAOp):
     def to_asm(self,asm):
         asm.CALL_REL32(self.name)
 
-class SSAVariableOp(SSAOp):
+class SSAVariable(object):
     pass
+
+class SSAVariableOp(SSAOp):
+    def return_value(self):
+        self._return_value = SSAVariable()
+        return self._return_value
+
+class WritePointer(SSAOp):
+    def __init__(self,label,value):
+        self.label = label
+        self.value = value
+
 
 class ReadMemory(SSAVariableOp):
     def __init__(self,dest,address):
@@ -50,8 +79,12 @@ class WriteMemory(SSAOp):
         self.value = value
 
 class CallCFunction(SSAVariableOp):
-    def __init__(self,name):
+    def __init__(self,name,*args):
         self.name = name
+        self.args = args
+        
+    def to_asm(self,asm):
+        pass
 
 class CompareEQ(SSAOp):
     def __init__(self,left,right):
