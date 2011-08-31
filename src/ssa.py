@@ -62,11 +62,10 @@ class SSAVariableOp(SSAOp):
         self._return_value = SSAVariable()
         return self._return_value
 
-class WritePointer(SSAOp):
+class WriteGlobalPointer(SSAOp):
     def __init__(self,label,value):
         self.label = label
         self.value = value
-
 
 class ReadMemory(SSAVariableOp):
     def __init__(self,dest,address):
@@ -84,14 +83,15 @@ class CallCFunction(SSAVariableOp):
         self.args = args
         
     def to_asm(self,asm):
-        pass
+        ret = asm.call_c_function(self.name,*self.args)
+        return ret
 
 class CompareEQ(SSAOp):
     def __init__(self,left,right):
         self.left = left
         self.right = right
         
-    def to_asm(self,asm,false_label):
+    def to_asm(self,asm,true_label=None,false_label=None):
         pass
 
 class If(SSAOp):
@@ -115,7 +115,23 @@ class If(SSAOp):
             for op in false_ops:
                 op.to_asm(asm)
         asm.add_label(end_label)
+
+class DoWhile(SSAOp):
+    _counter = 0
+
+    def __init__(self,test,loop_ops):
+        self.test = test
+        self.loop_ops = loop_ops
         
+    def to_asm(self,asm):
+        start_label = 'DoWhile:Start:%d' % self._counter
+        end_label = 'DoWhilite:End:%d' % self._counter
+        self._counter += 1
+        asm.add_label(start_label)
+        for op in loop_ops:
+            op.to_asm(asm,break_label=end_label)
+        test.to_asm(asm,true_label=start_label)
+        asm.add_label(end_label)
 
 def ssa_to_asm(ssa):
     asm = assembler.Assembler()
