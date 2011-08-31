@@ -55,9 +55,24 @@ class WriteGlobalPointer(SemOp):
         value = self.value.to_ssa(ssa_list)
         ssa_list.add(ssa.WriteGlobalPointer,self.label,value)
 
+def _memset(ssa_list,addr,value,size):
+    
+    start_counter = ssa_list.add(ssa.Immediate,0)
+
+    ops = ssa.SSAList()
+    ops.add(ssa.WriteMemory(addr,value,offset=counter))
+    new_counter = ops.add(ssa.Add(start_counter,8))
+    start_counter.phi(new_counter)
+
+    compare = ssa.CompareLTE(new_counter,size)
+    
+    ssa_list.add(ssa.DoWhile,compare,ops)
+
 class Memset(SemOp):
     def __init__(self,addr,value,size):
-        pass
+        self.addr = addr
+        self.value = value
+        self.size 
 
 class CreateLayoutObject(SemOp):
     def __init__(self,parent):
@@ -65,7 +80,7 @@ class CreateLayoutObject(SemOp):
     
     def to_ssa(self,ssa_list):
         addr = ssa_list.add(ssa.CallCFunction,'debug_malloc',LAYOUT_OBJECT_SIZE)
-        Memset(addr,0,LAYOUT_OBJECT_SIZE).to_ssa(ssa_list)
+        _memset(ssa_list,addr,0,LAYOUT_OBJECT_SIZE)
         if self.parent is not None:
             ssa_list.add(ssa.WriteMemory,addr,self.parent,offset=LAYOUT_OFFSET['parent'])
         return addr
@@ -99,8 +114,7 @@ class Store(SemOp):
         self.value = value
 
 class StoreGlobal(Store):
-    def to_ssa_list(self):
-        pass
+    pass
 
 class StoreLocal(Store):
     pass

@@ -4,11 +4,15 @@ import assembler
 class SSAList(object):
     def __init__(self):
         self.ssa_ops = []
+        self.phi_list = []
         
     def add(self,ssa_class,*args,**kwargs):
         op = ssa_class(*args,**kwargs)
         self.ssa_ops.append(op)
         return op.return_value()
+
+    def phi(self,*args):
+        self.phi_list.append(args)
 
     def __iter__(self):
         return self.ssa_ops.__iter__()
@@ -55,7 +59,8 @@ class CallFunction(SSAOp):
         asm.CALL_REL32(self.name)
 
 class SSAVariable(object):
-    pass
+    def phi(self,other):
+        other.alias = self
 
 class SSAVariableOp(SSAOp):
     def return_value(self):
