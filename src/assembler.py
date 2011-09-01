@@ -337,13 +337,10 @@ class Assembler(object):
         print "MOV_MEM_IMM(dest=%s,imm=%s,offset=%d)" % (dest,imm,offset)
         self._add_modrm_op(0xc7,rm=dest,imm32=imm,offset=offset,extension=0)
 
-    def MOV_REG_IMM(self,arg1,arg2=None):
-        if arg2 is None:
+    def MOV_REG_IMM(self,reg,imm=None):
+        if imm is None:
             reg = self._regs.allocate_reg()
-            imm = arg1
-        else:
-            reg = arg1
-            imm = arg2
+            imm = reg
             
         if abs(imm) > INT32_MAX:
             print "MOV_REG_IMM(reg=%s,imm64=%d)" % (reg,imm)

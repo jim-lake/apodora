@@ -24,17 +24,17 @@ class SSAOp(object):
     def return_value(self):
         return None
     
-    def to_asm(self,asm):
+    def to_asm(self,asm,**kwargs):
         raise NotImplementedError("SSA to ASM not implemented for op type: %s" % type(self))
 
 class FunctionStart(SSAOp):
     def __init__(self,name):
         self.name = name
-    def to_asm(self,asm):
+    def to_asm(self,asm,**kwargs):
         asm.function_prefix(self.name)
 
 class FunctionEnd(SSAOp):
-    def to_asm(self,asm):
+    def to_asm(self,asm,**kwargs):
         asm.function_cleanup()
         asm.RETQ()
 
@@ -42,7 +42,7 @@ class Return(SSAOp):
     def __init__(self,value):
         self.value = value
 
-    def to_asm(self,asm):
+    def to_asm(self,asm,**kwargs):
         print "Return: %s" % self.value
         if type(self.value) is int:
             asm.MOV_RAX_IMM(self.value)
@@ -55,17 +55,39 @@ class CallFunction(SSAOp):
     def __init__(self,name):
         self.name = name
     
-    def to_asm(self,asm):
+    def to_asm(self,asm,**kwargs):
         asm.CALL_REL32(self.name)
 
 class SSAVariable(object):
+    def __init__(self):
+        self.register = None
+
     def phi(self,other):
         other.alias = self
+    
+    def set_register(self,reg):
+        self.register = reg
 
 class SSAVariableOp(SSAOp):
     def return_value(self):
         self._return_value = SSAVariable()
         return self._return_value
+
+    def reg(self):
+        self._return_value.register
+
+class Immediate(SSAVariableOp):
+    def __init__(self,imm):
+        self.imm = imm
+
+    def to_asm(self,asm,**kwargs):
+        reg = asm.MOV_REG_IMM(self.reg(),self.imm)
+        self._return_value.set_register(reg)
+
+class Add(SSAVariableOp):
+    def __init__(self,left,right):
+        self.left = left
+        self.right = right
 
 class WriteGlobalPointer(SSAOp):
     def __init__(self,label,value):
@@ -78,18 +100,22 @@ class ReadMemory(SSAVariableOp):
         self.address = address
 
 class WriteMemory(SSAOp):
-    def __init__(self,address,value):
+    def __init__(self,address,value,offset=None):
         self.address = address
         self.value = value
+        self.offset = offset
+
+    def to_asm(self,asm,**kwargs):
+        asm.MOV_MEM_REG(self.address,self.value,offset=self.offset)
 
 class CallCFunction(SSAVariableOp):
     def __init__(self,name,*args):
         self.name = name
         self.args = args
         
-    def to_asm(self,asm):
-        ret = asm.call_c_function(self.name,*self.args)
-        return ret
+    def to_asm(self,asm,**kwargs):
+        reg = asm.call_c_function(self.name,*self.args)
+        self._return_value.set_register(reg)
 
 class CompareEQ(SSAOp):
     def __init__(self,left,right):
@@ -99,6 +125,11 @@ class CompareEQ(SSAOp):
     def to_asm(self,asm,true_label=None,false_label=None):
         pass
 
+class CompareLTE(SSAOp):
+    def __init__(self,left,right):
+        self.left = left
+        self.right = right
+
 class If(SSAOp):
     _counter = 0
 
@@ -107,7 +138,7 @@ class If(SSAOp):
         self.true_ops = true_ops
         self.false_ops = false_ops
     
-    def to_asm(self,asm):
+    def to_asm(self,asm,**kwargs):
         false_label = 'If:False:%d' % self._counter
         end_label = 'If:End:%d' % self._counter
         self._counter += 1
@@ -128,12 +159,12 @@ class DoWhile(SSAOp):
         self.test = test
         self.loop_ops = loop_ops
         
-    def to_asm(self,asm):
+    def to_asm(self,asm,**kwargs):
         start_label = 'DoWhile:Start:%d' % self._counter
         end_label = 'DoWhilite:End:%d' % self._counter
         self._counter += 1
         asm.add_label(start_label)
-        for op in loop_ops:
+        for op in self.loop_ops:
             op.to_asm(asm,break_label=end_label)
         test.to_asm(asm,true_label=start_label)
         asm.add_label(end_label)

@@ -58,10 +58,11 @@ class WriteGlobalPointer(SemOp):
 def _memset(ssa_list,addr,value,size):
     
     start_counter = ssa_list.add(ssa.Immediate,0)
+    value_reg = ssa_list.add(ssa.Immediate,value)
 
     ops = ssa.SSAList()
-    ops.add(ssa.WriteMemory(addr,value,offset=counter))
-    new_counter = ops.add(ssa.Add(start_counter,8))
+    ops.add(ssa.WriteMemory,addr,value_reg,offset=start_counter)
+    new_counter = ops.add(ssa.Add,start_counter,8)
     start_counter.phi(new_counter)
 
     compare = ssa.CompareLTE(new_counter,size)
